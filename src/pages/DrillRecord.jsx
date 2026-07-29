@@ -93,6 +93,16 @@ export default function DrillRecord() {
     startListening();
   };
 
+  // Restart current question answer
+  const handleRestartAnswer = () => {
+    stopListening();
+    setIsRecording(false);
+    setTranscript('');
+    setInterim('');
+    setElapsed(0);
+    setTimeRemaining(drillTimerSecs);
+  };
+
   // Toggle recording pause/resume
   const handleToggleRecord = () => {
     if (isRecording) {
@@ -265,25 +275,39 @@ export default function DrillRecord() {
 
       {/* Action Controls */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        {!isRecording && !transcript ? (
-          <button
-            onClick={handleStart}
-            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]"
-          >
-            🎙 Start Answer
-          </button>
-        ) : (
-          <button
-            onClick={handleToggleRecord}
-            className={`inline-flex items-center gap-2 border rounded-[10px] px-6 py-3 font-sans text-[13px] transition-all cursor-pointer ${
-              isRecording
-                ? 'bg-red-500/10 text-red-400 border-red-500/40 hover:bg-red-500/20'
-                : 'bg-surface text-text2 border-border-md hover:border-border-hi hover:text-text'
-            }`}
-          >
-            {isRecording ? '⏸ Pause' : '▶ Resume Answer'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {!isRecording && !transcript ? (
+            <button
+              onClick={handleStart}
+              className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]"
+            >
+              🎙 Start Answer
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleToggleRecord}
+                className={`inline-flex items-center gap-2 border rounded-[10px] px-6 py-3 font-sans text-[13px] transition-all cursor-pointer ${
+                  isRecording
+                    ? 'bg-red-500/10 text-red-400 border-red-500/40 hover:bg-red-500/20'
+                    : 'bg-surface text-text2 border-border-md hover:border-border-hi hover:text-text'
+                }`}
+              >
+                {isRecording ? '⏸ Pause' : '▶ Resume Answer'}
+              </button>
+
+              {(transcript || elapsed > 0) && (
+                <button
+                  onClick={handleRestartAnswer}
+                  title="Clear & restart answer for this question"
+                  className="text-[12px] text-text3 hover:text-text bg-surface border border-border px-3 py-3 rounded-lg cursor-pointer transition-all"
+                >
+                  🔄 Restart
+                </button>
+              )}
+            </>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <button

@@ -9,11 +9,13 @@ import {
   stopListening,
   destroyRecognition,
 } from '../lib/speechEngine';
-import { computeMetrics, annotateTranscript, getScoreNote } from '../lib/metricsEngine';
+import { computeMetrics, annotateTranscript } from '../lib/metricsEngine';
 import { polishTranscript } from '../lib/apiClient';
 
 function fmt(s) {
-  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
 const TIMER_PRESETS = [
@@ -34,6 +36,7 @@ export default function Record() {
   const setProcessingStep = useSessionStore((s) => s.setProcessingStep);
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [timerSecs, setTimerSecs] = useState(0); // 0 = freeform
   const [elapsed, setElapsed] = useState(0);
   const [timerHidden, setTimerHidden] = useState(false);
@@ -41,12 +44,14 @@ export default function Record() {
   const [interimText, setInterimText] = useState('');
   const [speechSupported, setSpeechSupported] = useState(true);
   const [showNotice, setShowNotice] = useState('');
-  const [activePreset, setActivePreset] = useState(4); // "Free" index
+  const [activePreset, setActivePreset] = useState(4);
 
   const timerRef = useRef(null);
   const finalTextRef = useRef('');
   const elapsedRef = useRef(0);
   const liveRef = useRef(null);
+
+  const activeTopicDisplay = customContext || selectedContext || 'Free Talk Session';
 
   // Check Speech API support
   useEffect(() => {
@@ -76,23 +81,24 @@ export default function Record() {
     });
   }, []);
 
-  // Timer tick
+  // Timer tick (only increments when recording AND not paused)
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
         setElapsed((prev) => {
           const next = prev + 1;
           elapsedRef.current = next;
-          // Auto-stop if countdown reaches 0
           if (timerSecs > 0 && next >= timerSecs) {
             handleStop();
           }
           return next;
         });
       }, 1000);
+    } else {
+      clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [isRecording, timerSecs]);
+  }, [isRecording, isPaused, timerSecs]);
 
   // Scroll live transcript
   useEffect(() => {
@@ -101,8 +107,10 @@ export default function Record() {
     }
   }, [finalText, interimText]);
 
+  // Start recording from scratch
   const handleStart = () => {
     setIsRecording(true);
+    setIsPaused(false);
     setFinalText('');
     setInterimText('');
     setElapsed(0);
@@ -113,44 +121,64 @@ export default function Record() {
     startListening();
   };
 
+  // Pause speech recognition (PRESERVES transcript & elapsed)
+  const handlePause = () => {
+    stopListening();
+    setIsPaused(true);
+  };
+
+  // Resume speech recognition (CONTINUES recording)
+  const handleResume = () => {
+    setIsPaused(false);
+    startListening();
+  };
+
+  // Reset/Clear recording
+  const handleReset = () => {
+    stopListening();
+    setIsRecording(false);
+    setIsPaused(false);
+    setFinalText('');
+    setInterimText('');
+    setElapsed(0);
+    finalTextRef.current = '';
+    elapsedRef.current = 0;
+  };
+
+  // Stop recording & finish session
   const handleStop = useCallback(async () => {
     setIsRecording(false);
+    setIsPaused(false);
     clearInterval(timerRef.current);
     stopListening();
 
     const raw = finalTextRef.current.trim();
-    const dur = elapsedRef.current;
+    const dur = elapsedRef.current || 1;
 
-    // Navigate to processing
     setProcessing(true);
     setProcessingStep(0);
     navigate('/processing');
 
-    // Step 1: Transcribing
     setProcessingStep(1);
-    await delay(800);
+    await delay(700);
 
-    // Step 2: Analysing
     setProcessingStep(2);
     const metrics = computeMetrics(raw, dur);
-    await delay(800);
+    await delay(700);
 
-    // Step 3: Polished script (Claude API)
     setProcessingStep(3);
-    const ctx = selectedContext || 'Free Talk';
+    const ctx = customContext || selectedContext || 'Free Talk';
     let polished = '';
-    if (raw.length > 20) {
-      polished = await polishTranscript(raw, customContext || ctx);
+    if (raw.length > 15) {
+      polished = await polishTranscript(raw, ctx);
     } else {
-      polished = 'Your recording was too short. Try speaking for at least 20 seconds.';
+      polished = 'Your recording was too short. Try speaking for at least 15–20 seconds.';
     }
     await delay(600);
 
-    // Step 4: Building scorecard
     setProcessingStep(4);
-    await delay(500);
+    await delay(400);
 
-    // Save session
     const session = addSession({
       context: ctx,
       customContext: customContext || '',
@@ -166,10 +194,6 @@ export default function Record() {
     navigate('/results');
   }, [selectedContext, customContext, navigate, addSession, setProcessing, setProcessingStep]);
 
-  const toggleRec = () => {
-    isRecording ? handleStop() : handleStart();
-  };
-
   const displayTime = () => {
     if (timerSecs > 0) {
       const left = Math.max(0, timerSecs - elapsed);
@@ -178,37 +202,32 @@ export default function Record() {
     return fmt(elapsed);
   };
 
+  const wordCount = (finalText + ' ' + interimText).trim().split(/\s+/).filter(Boolean).length;
   const isWarning = timerSecs > 0 && elapsed >= timerSecs * 0.8 && elapsed < timerSecs;
 
   return (
-    <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 min-h-[calc(100vh-60px)] flex flex-col items-center justify-center text-center gap-0">
-      {/* Speech notice */}
+    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-12 pb-20 max-[680px]:px-5 flex flex-col items-center text-center">
+      {/* Speech Notice */}
       {showNotice && (
-        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-8">
+        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-6">
           {showNotice}
         </div>
       )}
 
-      {/* Camera button (V2 disabled) */}
-      <div className="mb-7 flex justify-center">
-        <button
-          className="inline-flex items-center gap-1.5 text-[11px] text-text3 border border-border rounded-full py-[5px] px-3.5 cursor-pointer bg-transparent relative transition-all duration-[180ms] hover:border-border-md"
-          title="📷 Camera analysis coming in V2 — body language, eye contact & more."
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M23 7l-7 5 7 5V7z" />
-            <rect x="1" y="5" width="15" height="14" rx="2" />
-          </svg>
-          Camera
-          <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-surface2 border border-border-md rounded-lg px-[5px] py-[1px] text-text3">
-            V2
-          </span>
-        </button>
+      {/* Active Topic Banner */}
+      <div className="w-full mb-8 p-5 bg-surface border border-border-md rounded-2xl shadow-xl relative overflow-hidden">
+        <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1.5 flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
+          Active Topic
+        </div>
+        <h2 className="font-serif text-[22px] text-text font-normal leading-[1.3] max-w-[600px] mx-auto">
+          "{activeTopicDisplay}"
+        </h2>
       </div>
 
-      {/* Timer presets */}
+      {/* Timer Presets (when not recording) */}
       {!isRecording && (
-        <div className="flex gap-2 mb-9 justify-center flex-wrap">
+        <div className="flex gap-2 mb-8 justify-center flex-wrap">
           {TIMER_PRESETS.map((p, i) => (
             <button
               key={p.label}
@@ -216,12 +235,11 @@ export default function Record() {
                 setTimerSecs(p.secs);
                 setActivePreset(i);
               }}
-              className={`text-[12px] px-4 py-1.5 border rounded-full cursor-pointer bg-transparent font-sans transition-all duration-[180ms]
-                ${
-                  activePreset === i
-                    ? 'border-accent-border text-accent bg-accent-dim'
-                    : 'border-border-md text-text3 hover:border-border-hi hover:text-text'
-                }`}
+              className={`text-[12px] px-4 py-1.5 border rounded-full cursor-pointer bg-transparent font-sans transition-all duration-[180ms] ${
+                activePreset === i
+                  ? 'border-accent-border text-accent bg-accent-dim font-medium'
+                  : 'border-border-md text-text3 hover:border-border-hi hover:text-text'
+              }`}
             >
               {p.label}
             </button>
@@ -229,70 +247,105 @@ export default function Record() {
         </div>
       )}
 
-      {/* Big timer */}
+      {/* Big Display Timer */}
       <div
         onClick={() => setTimerHidden(!timerHidden)}
-        className={`font-serif text-[100px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-400 mb-1.5
-          ${isWarning ? 'text-orange' : 'text-text'}
-          ${timerHidden ? 'opacity-[0.07]' : ''}`}
+        className={`font-serif text-[92px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
+          isWarning ? 'text-orange animate-pulse' : 'text-text'
+        } ${timerHidden ? 'opacity-[0.08]' : ''}`}
       >
         {displayTime()}
       </div>
       <div
         onClick={() => setTimerHidden(!timerHidden)}
-        className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-10"
+        className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-8"
       >
-        tap to {timerHidden ? 'show' : 'hide'}
+        tap to {timerHidden ? 'show' : 'hide'} timer
       </div>
 
-      {/* Waveform */}
-      <WaveForm isActive={isRecording} />
+      {/* Audio Waveform & Live Stats */}
+      <div className="mb-6 w-full flex flex-col items-center">
+        <WaveForm isActive={isRecording && !isPaused} />
+        {isRecording && (
+          <div className="flex items-center gap-4 text-[12px] text-text3 mt-3">
+            <span>Words: <strong className="text-text">{wordCount}</strong></span>
+            <span>·</span>
+            <span>Status: <strong className={isPaused ? 'text-amber-400' : 'text-green'}>{isPaused ? 'Paused' : 'Recording'}</strong></span>
+          </div>
+        )}
+      </div>
 
-      {/* Live transcript */}
+      {/* Live Transcript Display Box */}
       {(finalText || interimText) && (
         <div
           ref={liveRef}
-          className="w-full max-w-[580px] min-h-[60px] max-h-[200px] overflow-y-auto bg-surface border border-border-md rounded-[14px] p-[18px_24px] text-[15px] leading-[1.85] text-text2 italic text-left mb-9"
+          className="w-full max-w-[620px] min-h-[80px] max-h-[220px] overflow-y-auto bg-surface border border-border-md rounded-2xl p-[20px_24px] text-[15px] leading-[1.85] text-text2 italic text-left mb-8 shadow-inner"
         >
-          <span>{finalText}</span>
-          <span className="text-text3">{interimText}</span>
+          <span className="text-text">{finalText}</span>
+          <span className="text-text3"> {interimText}</span>
         </div>
       )}
 
-      {/* Recording indicator */}
-      {isRecording && (
-        <div className="flex items-center gap-2 text-[11px] text-text3 tracking-[0.14em] uppercase mb-7">
-          <span className="w-[7px] h-[7px] rounded-full bg-red animate-blink" />
-          <span>Recording</span>
-        </div>
-      )}
-
-      {/* Mic button */}
-      <div className="flex flex-col items-center gap-3.5">
-        <button
-          onClick={toggleRec}
-          disabled={!speechSupported}
-          className={`w-20 h-20 rounded-full border-none cursor-pointer flex items-center justify-center transition-all duration-200 relative active:scale-[0.92]
-            ${isRecording ? 'bg-red' : 'bg-accent'}
-            ${!speechSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {isRecording ? (
-            <>
-              <svg width="28" height="28" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" fill="#0e0e0d" />
-              </svg>
-              <span className="absolute -inset-3.5 rounded-full border border-[rgba(204,122,100,0.25)] animate-ripple" />
-            </>
-          ) : (
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0e0e0d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Glowing Mic & Controls */}
+      <div className="flex flex-col items-center gap-4 mt-2">
+        {!isRecording ? (
+          <button
+            onClick={handleStart}
+            disabled={!speechSupported}
+            className={`w-24 h-24 rounded-full border-none cursor-pointer flex items-center justify-center transition-all duration-300 relative shadow-[0_0_40px_rgba(223,200,122,0.25)] hover:shadow-[0_0_60px_rgba(223,200,122,0.45)] hover:scale-105 active:scale-95 bg-accent ${
+              !speechSupported ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0e0e0d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" y1="19" x2="12" y2="22" />
             </svg>
-          )}
-        </button>
-        <div className="text-[12px] text-text3">
-          {isRecording ? 'Tap to stop' : 'Tap to start recording'}
+          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            {/* Pause / Resume Button */}
+            {isPaused ? (
+              <button
+                onClick={handleResume}
+                className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95"
+              >
+                ▶ Resume Recording
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-amber-500/25 active:scale-95"
+              >
+                ⏸ Pause
+              </button>
+            )}
+
+            {/* Stop & Analyze Button */}
+            <button
+              onClick={handleStop}
+              className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-7 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95"
+            >
+              ⏹ Finish & Analyze →
+            </button>
+
+            {/* Reset Button */}
+            <button
+              onClick={handleReset}
+              title="Discard & Reset"
+              className="text-[13px] text-text3 hover:text-text bg-surface border border-border p-3 rounded-xl cursor-pointer transition-all"
+            >
+              🔄 Reset
+            </button>
+          </div>
+        )}
+
+        <div className="text-[13px] text-text3">
+          {isRecording
+            ? isPaused
+              ? 'Recording paused — click Resume or Finish'
+              : 'Recording in progress... speak freely'
+            : 'Tap the mic to start your speech session'}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
 import ChipGrid from '../components/ChipGrid';
@@ -25,6 +25,16 @@ export default function Context() {
   const [currentTopic, setCurrentTopic] = useState(getRandomTopic('all'));
   const [isSpinning, setIsSpinning] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState(0);
+
+  const actionSectionRef = useRef(null);
+
+  // Auto scroll down when a chip is selected
+  const handleSelectChip = (chipLabel) => {
+    setContext(chipLabel);
+    setTimeout(() => {
+      actionSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  };
 
   // Spin Random Topic Animation
   const handleSpinTopic = () => {
@@ -95,7 +105,7 @@ export default function Context() {
           <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5">
             Choose a context
           </div>
-          <ChipGrid selected={selectedContext} onSelect={setContext} />
+          <ChipGrid selected={selectedContext} onSelect={handleSelectChip} />
 
           <div className="mb-8">
             <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5">
@@ -197,8 +207,8 @@ export default function Context() {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3 flex-wrap">
+      {/* Action Buttons (Smooth Scroll Target) */}
+      <div ref={actionSectionRef} className="flex items-center gap-3 flex-wrap pt-2">
         {activeTab === 'spinner' ? (
           <button
             onClick={() => handleStart(currentTopic.text)}

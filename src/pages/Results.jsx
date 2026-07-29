@@ -14,6 +14,7 @@ export default function Results() {
   const session = useSessionStore((s) => s.currentSession);
   const [activeTab, setActiveTab] = useState('transcript');
   const [expandedQuestion, setExpandedQuestion] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   if (!session) {
     return (
@@ -33,8 +34,22 @@ export default function Results() {
   const note = getScoreNote(metrics);
   const isDrill = sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
+  const handleCopyPolished = () => {
+    if (!polishedScript) return;
+    navigator.clipboard.writeText(polishedScript);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5 relative">
+      {/* Copied Toast Notification */}
+      {copied && (
+        <div className="fixed bottom-6 right-6 bg-accent text-[#0e0e0d] font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 text-[13px] animate-fade-up flex items-center gap-2">
+          <span>✓</span> Polished script copied to clipboard!
+        </div>
+      )}
+
       <div className="mb-8 flex items-center justify-between">
         <div>
           <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1.5">
@@ -110,17 +125,28 @@ export default function Results() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-b-border mb-6">
-        {['transcript', 'polished'].map((tab) => (
+      <div className="flex items-center justify-between border-b border-b-border mb-6">
+        <div className="flex gap-0">
+          {['transcript', 'polished'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
+                ${activeTab === tab ? 'text-accent border-b-accent font-medium' : 'text-text3 border-b-transparent'}`}
+            >
+              {tab === 'transcript' ? 'Full Session Transcript' : 'Polished Script'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'polished' && polishedScript && (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
-              ${activeTab === tab ? 'text-accent border-b-accent' : 'text-text3 border-b-transparent'}`}
+            onClick={handleCopyPolished}
+            className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium pb-1"
           >
-            {tab === 'transcript' ? 'Full Session Transcript' : 'Polished Script'}
+            📋 {copied ? 'Copied!' : 'Copy Script'}
           </button>
-        ))}
+        )}
       </div>
 
       {/* Tab content */}
@@ -137,9 +163,12 @@ export default function Results() {
             <div className="text-[10px] tracking-[0.18em] uppercase text-text3">
               Your words — said better
             </div>
-            <div className="text-[10px] bg-green-dim text-green border border-[rgba(121,191,156,0.2)] px-2.5 py-[3px] rounded-full">
-              Voice preserved
-            </div>
+            <button
+              onClick={handleCopyPolished}
+              className="text-[11px] bg-accent/15 text-accent border border-accent/30 px-3 py-1 rounded-full cursor-pointer hover:bg-accent/25 transition-all"
+            >
+              📋 {copied ? 'Copied!' : 'Copy to Clipboard'}
+            </button>
           </div>
           <div className="font-serif text-[16px] leading-[1.9] text-text italic whitespace-pre-wrap">
             {polishedScript || 'Generating polished script...'}
