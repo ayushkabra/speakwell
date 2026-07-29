@@ -39,6 +39,10 @@ export default function Compare() {
   // Fetch insight when both selected
   useEffect(() => {
     if (sessionA && sessionB) {
+      if (idA === idB) {
+        setInsight('You selected the same session twice. Please choose two different sessions to compare your progress over time.');
+        return;
+      }
       setLoading(true);
       setInsight('');
       compareInsight(sessionA, sessionB)

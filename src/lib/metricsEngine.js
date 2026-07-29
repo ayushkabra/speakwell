@@ -1,5 +1,5 @@
 /**
- * metricsEngine.js — local speech metrics computation
+ * metricsEngine.js — local speech metrics computation & HTML sanitization
  */
 
 const FILLER_PATTERNS = [
@@ -8,8 +8,18 @@ const FILLER_PATTERNS = [
   /\bmatlab\b/gi, /\barre\b/gi, /\bhmm\b/gi, /\ber\b/gi,
 ];
 
+export function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function computeMetrics(rawTranscript, durationSecs) {
-  const raw = rawTranscript.trim();
+  const raw = (rawTranscript || '').trim();
   if (raw.length < 10) {
     return {
       wpm: 0,
@@ -23,7 +33,8 @@ export function computeMetrics(rawTranscript, durationSecs) {
   }
 
   const words = raw.split(/\s+/).length;
-  const wpm = durationSecs > 0 ? Math.round(words / (durationSecs / 60)) : 0;
+  const dur = Math.max(1, durationSecs);
+  const wpm = Math.round(words / (dur / 60));
 
   let fillers = 0;
   FILLER_PATTERNS.forEach((p) => {
@@ -37,14 +48,16 @@ export function computeMetrics(rawTranscript, durationSecs) {
   const clarity = Math.min(99, Math.max(35, Math.round(100 - fillers * 3 - Math.abs(avgWPS - 18) * 1.3)));
   const flow = Math.min(99, Math.max(25, Math.round(clarity * 0.65 + (wpm > 80 && wpm < 175 ? 32 : 8))));
   const grammar = Math.max(0, Math.round(sentences * 0.25));
-  const pauses = Math.max(0, Math.round(durationSecs / 28));
+  const pauses = Math.max(0, Math.round(dur / 28));
   const overall = Math.min(99, Math.round(clarity * 0.4 + flow * 0.35 + Math.max(0, 100 - fillers * 4) * 0.25));
 
   return { wpm, clarity, flow, fillers, grammar, pauses, overall };
 }
 
 export function annotateTranscript(rawTranscript) {
-  let ann = rawTranscript;
+  if (!rawTranscript) return '';
+  let ann = escapeHtml(rawTranscript);
+
   const fillerPatterns = [
     { re: /\bum\b/gi, label: 'Filler word — try removing it or pausing instead' },
     { re: /\buh\b/gi, label: 'Filler word — try pausing instead' },
@@ -53,7 +66,7 @@ export function annotateTranscript(rawTranscript) {
     { re: /\bbasically\b/gi, label: 'Filler word — used as a thinking pause' },
     { re: /\bactually\b/gi, label: 'Filler word' },
     { re: /\bliterally\b/gi, label: 'Filler word' },
-    { re: /\bmatlab\b/gi, label: 'Multilingual filler — matlab = "meaning" in Hindi, used here as hesitation' },
+    { re: /\bmatlab\b/gi, label: 'Multilingual filler — matlab = "meaning" in Hindi' },
     { re: /\barre\b/gi, label: 'Hindi filler' },
     { re: /\bhmm\b/gi, label: 'Filler — try pausing instead' },
     { re: /\ber\b/gi, label: 'Filler word' },
@@ -126,6 +139,7 @@ export function getMetricNote(metricName, value) {
 }
 
 export function getScoreNote(metrics) {
+  if (!metrics) return '"Keep going — with practice, your natural confidence will come through."';
   if (metrics.fillers > 10) return '"Filler words are burying your ideas — the thoughts are solid, the delivery needs cleaning."';
   if (metrics.clarity > 75) return '"Strong clarity. A little more pace control and you\'re there."';
   return '"Keep going — with practice, your natural confidence will come through."';

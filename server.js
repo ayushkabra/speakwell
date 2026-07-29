@@ -118,8 +118,8 @@ app.post('/api/extract-questions', async (req, res) => {
     if (data.error) return res.status(500).json({ error: data.error.message });
 
     const rawContent = data.content?.[0]?.text || '[]';
-    const cleanedJson = rawContent.replace(/```json|```/g, '').trim();
-    const questions = JSON.parse(cleanedJson);
+    const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
+    const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
     res.json({ questions });
   } catch (err) {
     console.error('Extract Questions API error:', err);
