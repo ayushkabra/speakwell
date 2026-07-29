@@ -23,7 +23,7 @@ export default function Home() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-20 pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-20 pb-20 max-[680px]:px-5">
       {/* Hero */}
       <div className="mb-13">
         <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">
@@ -33,26 +33,55 @@ export default function Home() {
           Speak freely.<br />
           <em className="italic text-accent">Sound sharp.</em>
         </h1>
-        <p className="text-[15px] text-text2 leading-[1.8] max-w-[420px] mb-8">
-          No prompts. No judgment. Just speak — in any language. We listen, analyse, and hand you back a polished version of yourself.
+        <p className="text-[15px] text-text2 leading-[1.8] max-w-[460px] mb-8">
+          Practice open speech or drill through custom question lists. We listen, analyse, and hand you back a polished version of yourself.
         </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
+
+        {/* Practice Mode Cards / CTAs */}
+        <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1 mb-6">
+          <div
             onClick={() => navigate('/context')}
-            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] tracking-[0.01em] hover:opacity-86 active:scale-[0.96]"
+            className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-            </svg>
-            Start speaking
-          </button>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[22px]">🎙️</span>
+              <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
+                Start →
+              </span>
+            </div>
+            <div className="font-sans text-[16px] font-medium text-text mb-1">
+              Free Talk Mode
+            </div>
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Speak freely on any topic without prompts or strict time limits.
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/drill-setup')}
+            className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[22px]">🎯</span>
+              <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
+                Setup →
+              </span>
+            </div>
+            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-2">
+              Question Drills <span className="bg-accent/20 text-accent text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            </div>
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Upload PDF or list of questions. Practice answering one-by-one with optional timers.
+            </div>
+          </div>
+        </div>
+
+        <div>
           <button
             onClick={() => navigate('/compare')}
-            className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
+            className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-5 py-2.5 font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
           >
-            Compare sessions →
+            Compare previous sessions →
           </button>
         </div>
       </div>
@@ -93,11 +122,11 @@ export default function Home() {
                 className="flex items-center justify-between p-4 px-5 bg-surface border border-border rounded-xl cursor-pointer transition-all duration-[180ms] hover:border-border-md hover:bg-surface2"
               >
                 <div className="flex flex-col gap-[3px]">
-                  <div className="text-[14px] font-medium text-text">
-                    {s.context || 'Free Talk'}
+                  <div className="text-[14px] font-medium text-text flex items-center gap-2">
+                    {s.sessionType === 'drill' ? '🎯' : '🎙️'} {s.context || 'Free Talk'}
                   </div>
                   <div className="text-[12px] text-text3">
-                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.language || 'Auto'}
+                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Qs` : s.language || 'Auto'}
                   </div>
                 </div>
                 <div className="flex items-center gap-3.5">
@@ -115,7 +144,7 @@ export default function Home() {
       {sessions.length === 0 && (
         <div className="text-center py-16 text-text3 text-[14px]">
           <p className="mb-2">No sessions yet.</p>
-          <p>Tap "Start speaking" to record your first session.</p>
+          <p>Choose "Free Talk Mode" or "Question Drills" to start practicing.</p>
         </div>
       )}
     </div>

@@ -13,35 +13,101 @@ export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
   const [activeTab, setActiveTab] = useState('transcript');
+  const [expandedQuestion, setExpandedQuestion] = useState(0);
 
   if (!session) {
     return (
       <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-16 pb-20 text-center">
         <p className="text-text3">No session data. Please record a session first.</p>
-        <button onClick={() => navigate('/context')} className="mt-4 inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer">
-          New session →
+        <button
+          onClick={() => navigate('/')}
+          className="mt-4 inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer"
+        >
+          Go to Home →
         </button>
       </div>
     );
   }
 
-  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript } = session;
+  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
+  const isDrill = sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   return (
-    <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5">
-      <div className="mb-8">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">Session results</div>
+    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5">
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1.5">
+            {isDrill ? 'Question Drill Results' : 'Session Results'}
+          </div>
+          <h2 className="font-serif text-[28px] text-text font-normal">
+            {isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+          </h2>
+        </div>
       </div>
 
       <ScoreHero score={metrics.overall} context={context} duration={fmt(durationSecs)} note={note} />
 
       {/* Metrics grid */}
-      <div className="grid grid-cols-3 gap-2.5 mb-7 max-[680px]:grid-cols-2">
+      <div className="grid grid-cols-3 gap-2.5 mb-8 max-[680px]:grid-cols-2">
         {['wpm', 'clarity', 'flow', 'fillers', 'grammar', 'pauses'].map((key) => (
           <MetricCard key={key} metricKey={key} value={metrics[key]} />
         ))}
       </div>
+
+      {/* Question-by-Question Drill Breakdown (If Drill Session) */}
+      {isDrill && (
+        <div className="mb-8 p-6 bg-surface border border-border-md rounded-2xl">
+          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4">
+            Question-by-Question Breakdown ({drillAnswers.length} Questions)
+          </div>
+          <div className="flex flex-col gap-3">
+            {drillAnswers.map((ans, idx) => (
+              <div
+                key={idx}
+                className="border border-border rounded-xl bg-surface2/60 overflow-hidden transition-all"
+              >
+                <div
+                  onClick={() => setExpandedQuestion(expandedQuestion === idx ? null : idx)}
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface2"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium">
+                      Q{idx + 1}
+                    </span>
+                    <div className="font-sans text-[14px] text-text font-medium truncate max-w-[440px]">
+                      {ans.questionText}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[12px] text-text3">{fmt(ans.durationSecs)}</span>
+                    <span className="font-serif italic text-accent text-[18px]">
+                      {ans.metrics?.overall || '—'}
+                    </span>
+                    <span className="text-text3 text-[14px]">
+                      {expandedQuestion === idx ? '▲' : '▼'}
+                    </span>
+                  </div>
+                </div>
+
+                {expandedQuestion === idx && (
+                  <div className="p-4 pt-2 border-t border-border bg-surface/80">
+                    <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Your Answer</div>
+                    <div className="text-[14px] text-text2 leading-[1.7] mb-3 p-3 bg-surface border border-border rounded-lg">
+                      {ans.transcript}
+                    </div>
+                    <div className="flex gap-4 text-[12px] text-text3">
+                      <span>WPM: <strong className="text-text">{ans.metrics?.wpm}</strong></span>
+                      <span>Clarity: <strong className="text-text">{ans.metrics?.clarity}%</strong></span>
+                      <span>Fillers: <strong className="text-text">{ans.metrics?.fillers}</strong></span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-b-border mb-6">
@@ -52,14 +118,15 @@ export default function Results() {
             className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
               ${activeTab === tab ? 'text-accent border-b-accent' : 'text-text3 border-b-transparent'}`}
           >
-            {tab === 'transcript' ? 'Transcript' : 'Polished script'}
+            {tab === 'transcript' ? 'Full Session Transcript' : 'Polished Script'}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       {activeTab === 'transcript' && (
-        <div className="text-[15px] leading-[2.1] text-text2 p-[24px_28px] bg-surface border border-border rounded-[14px] mb-7"
+        <div
+          className="text-[15px] leading-[2.1] text-text2 p-[24px_28px] bg-surface border border-border rounded-[14px] mb-7 whitespace-pre-wrap font-sans"
           dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript available.' }}
         />
       )}
@@ -67,21 +134,31 @@ export default function Results() {
       {activeTab === 'polished' && (
         <div className="bg-surface border border-border-md rounded-[14px] p-7 mb-7">
           <div className="flex items-center justify-between mb-[18px]">
-            <div className="text-[10px] tracking-[0.18em] uppercase text-text3">Your words — said better</div>
-            <div className="text-[10px] bg-green-dim text-green border border-[rgba(121,191,156,0.2)] px-2.5 py-[3px] rounded-full">Voice preserved</div>
+            <div className="text-[10px] tracking-[0.18em] uppercase text-text3">
+              Your words — said better
+            </div>
+            <div className="text-[10px] bg-green-dim text-green border border-[rgba(121,191,156,0.2)] px-2.5 py-[3px] rounded-full">
+              Voice preserved
+            </div>
           </div>
-          <div className="font-serif text-[16px] leading-[1.9] text-text italic">
-            {polishedScript || 'No polished script available.'}
+          <div className="font-serif text-[16px] leading-[1.9] text-text italic whitespace-pre-wrap">
+            {polishedScript || 'Generating polished script...'}
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2">
-        <button onClick={() => navigate('/context')} className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]">
-          New session →
+      <div className="flex gap-3 pt-2 flex-wrap">
+        <button
+          onClick={() => navigate(isDrill ? '/drill-setup' : '/context')}
+          className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]"
+        >
+          {isDrill ? 'Practice another drill →' : 'New session →'}
         </button>
-        <button onClick={() => navigate('/compare')} className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text">
+        <button
+          onClick={() => navigate('/compare')}
+          className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
+        >
           ↔ Compare sessions
         </button>
       </div>

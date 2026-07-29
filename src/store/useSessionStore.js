@@ -20,7 +20,10 @@ const useSessionStore = create((set, get) => ({
   // All saved sessions
   sessions: loadSessions(),
 
-  // Current recording state
+  // Current session type: 'free' | 'drill'
+  sessionType: 'free',
+
+  // Free talk state
   selectedContext: '',
   customContext: '',
   isRecording: false,
@@ -28,6 +31,12 @@ const useSessionStore = create((set, get) => ({
   currentElapsed: 0,
   isProcessing: false,
   processingStep: 0,
+
+  // Drill mode state
+  drillQuestions: [],
+  drillTimerSecs: 60,
+  currentDrillIndex: 0,
+  drillAnswers: [],
 
   // Current results (after recording)
   currentSession: null,
@@ -39,6 +48,7 @@ const useSessionStore = create((set, get) => ({
   compareLoading: false,
 
   // Actions
+  setSessionType: (type) => set({ sessionType: type }),
   setContext: (ctx) => set({ selectedContext: ctx }),
   setCustomContext: (text) => set({ customContext: text }),
   setRecording: (val) => set({ isRecording: val }),
@@ -46,6 +56,27 @@ const useSessionStore = create((set, get) => ({
   setElapsed: (secs) => set({ currentElapsed: secs }),
   setProcessing: (val) => set({ isProcessing: val }),
   setProcessingStep: (step) => set({ processingStep: step }),
+
+  // Drill actions
+  setDrillSetup: ({ questions, timerSecs }) =>
+    set({
+      sessionType: 'drill',
+      drillQuestions: questions,
+      drillTimerSecs: timerSecs ?? 60,
+      currentDrillIndex: 0,
+      drillAnswers: [],
+    }),
+  addDrillAnswer: (answer) =>
+    set((state) => ({
+      drillAnswers: [...state.drillAnswers, answer],
+    })),
+  setCurrentDrillIndex: (idx) => set({ currentDrillIndex: idx }),
+  resetDrill: () =>
+    set({
+      drillQuestions: [],
+      currentDrillIndex: 0,
+      drillAnswers: [],
+    }),
 
   setCurrentSession: (session) => set({ currentSession: session }),
 
