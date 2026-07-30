@@ -9,6 +9,16 @@ function fmt(s) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
+function formatPolishedHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent font-sans text-[17px] font-semibold block mt-4 mb-1">$1</strong>')
+    .replace(/^• (.*$)/gm, '<li class="ml-4 list-disc text-text2 my-1">$1</li>');
+}
+
 export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
@@ -36,7 +46,9 @@ export default function Results() {
 
   const handleCopyPolished = () => {
     if (!polishedScript) return;
-    navigator.clipboard.writeText(polishedScript);
+    // Strip markdown formatting for clipboard copy
+    const cleanText = polishedScript.replace(/\*\*/g, '');
+    navigator.clipboard.writeText(cleanText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -159,9 +171,9 @@ export default function Results() {
 
       {activeTab === 'polished' && (
         <div className="bg-surface border border-border-md rounded-[14px] p-7 mb-7">
-          <div className="flex items-center justify-between mb-[18px]">
+          <div className="flex items-center justify-between mb-4">
             <div className="text-[10px] tracking-[0.18em] uppercase text-text3">
-              Your words — said better
+              Executive Polished Version
             </div>
             <button
               onClick={handleCopyPolished}
@@ -170,9 +182,10 @@ export default function Results() {
               📋 {copied ? 'Copied!' : 'Copy to Clipboard'}
             </button>
           </div>
-          <div className="font-serif text-[16px] leading-[1.9] text-text italic whitespace-pre-wrap">
-            {polishedScript || 'Generating polished script...'}
-          </div>
+          <div
+            className="font-sans text-[15px] leading-[1.85] text-text whitespace-pre-wrap text-left"
+            dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating polished script...' }}
+          />
         </div>
       )}
 

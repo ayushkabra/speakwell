@@ -1,40 +1,66 @@
 /**
- * apiClient.js — calls to the Express proxy for Claude API
+ * apiClient.js — calls to the Express proxy for Claude API with reliable fallback
  */
 
 export async function polishTranscript(transcript, context) {
   try {
-    const res = await fetch('/api/polish', {
+    let res = await fetch('/api/polish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript, context }),
     });
+
+    if (!res.ok && res.status === 404) {
+      res = await fetch('http://localhost:3001/api/polish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, context }),
+      });
+    }
+
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data.polished;
   } catch (err) {
     console.error('Polish API error:', err);
-    // Fallback: basic filler removal
-    const fillers = [/\bum\b/gi, /\buh\b/gi, /\blike\b/gi, /\byou know\b/gi, /\bbasically\b/gi, /\bactually\b/gi, /\bliterally\b/gi, /\bmatlab\b/gi, /\bhmm\b/gi, /\ber\b/gi];
+    // Fallback filler removal & structure formatting
+    const fillers = [
+      /\bum\b/gi, /\buh\b/gi, /\blike\b/gi, /\byou know\b/gi,
+      /\bbasically\b/gi, /\bactually\b/gi, /\bliterally\b/gi,
+      /\bmatlab\b/gi, /\barre\b/gi, /\bhmm\b/gi, /\ber\b/gi
+    ];
     let pol = transcript;
     fillers.forEach((p) => { pol = pol.replace(p, ''); });
-    return pol.replace(/\s{2,}/g, ' ').trim();
+    pol = pol.replace(/\s{2,}/g, ' ').trim();
+
+    if (pol.includes('Q1') || pol.includes('Q2')) {
+      return pol.replace(/(Q\d+ \([^)]+\):)/g, '\n\n**$1**\n• ');
+    }
+    return pol;
   }
 }
 
 export async function compareInsight(sessionA, sessionB) {
   try {
-    const res = await fetch('/api/compare', {
+    let res = await fetch('/api/compare', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionA, sessionB }),
     });
+
+    if (!res.ok && res.status === 404) {
+      res = await fetch('http://localhost:3001/api/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionA, sessionB }),
+      });
+    }
+
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data.insight;
   } catch (err) {
     console.error('Compare API error:', err);
-    // Fallback insight
     const delta = (sessionB.metrics?.overall || 0) - (sessionA.metrics?.overall || 0);
     if (delta > 0) {
       return `Your overall score improved by ${delta} points — that's real progress. Keep working on reducing filler words for even smoother delivery.`;

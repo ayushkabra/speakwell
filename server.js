@@ -11,7 +11,7 @@ app.use(express.json({ limit: '5mb' }));
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-// POST /api/polish — generate polished script from raw transcript
+// POST /api/polish — generate structured polished script from raw transcript
 app.post('/api/polish', async (req, res) => {
   try {
     const { transcript, context } = req.body;
@@ -27,11 +27,19 @@ app.post('/api/polish', async (req, res) => {
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 2048,
-        system: `You are a speech coach. You do NOT give advice or solutions. Your only job is to rewrite the user's spoken words in a cleaner, more confident version that preserves their voice and language. If they spoke in Hindi, rewrite in Hindi. If they code-switched, preserve that. Do not add new ideas. Do not solve their problem. Just say the same thing, better.`,
+        system: `You are an executive speech coach and communication architect. Transform the user's spoken transcript into a remarkably structured, articulate, and executive-ready script.
+
+Formatting & Structure Rules:
+1. PRESERVE THE USER'S AUTHENTIC VOICE, CORE IDEAS, AND LANGUAGE (English, Hindi, or Hinglish/code-switched). Do not fabricate new facts.
+2. ELIMINATE ALL FILLER WORDS ("um", "uh", "like", "you know", "basically", "matlab", "arre") AND AWKWARD REPETITIONS.
+3. STRUCTURE:
+   - For Question Drills (transcripts containing Q1, Q2...): Format each question with a bold header (e.g. **Question 1: ...**) followed by a clean, structured answer (using bullet points or concise executive paragraphs).
+   - For Free Talk: Organize into well-structured paragraphs with a compelling opening hook, clear body thoughts, and a strong closing statement.
+4. Elevate phrasing, sentence flow, and cadence so the user sounds confident, polished, and sharp.`,
         messages: [
           {
             role: 'user',
-            content: `Context: ${context || 'Free Talk'}. Raw transcript: ${transcript}. Rewrite this in the user's voice.`,
+            content: `Context: ${context || 'Free Talk'}. Raw transcript:\n${transcript}\n\nRewrite and structure this into a polished script in the user's authentic voice.`,
           },
         ],
       }),

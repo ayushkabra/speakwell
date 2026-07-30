@@ -18,23 +18,34 @@ const METRIC_KEYS = [
 
 export default function Compare() {
   const sessions = useSessionStore((s) => s.sessions);
+  const [filter, setFilter] = useState('all'); // 'all' | 'free' | 'drill'
   const [idA, setIdA] = useState('');
   const [idB, setIdB] = useState('');
   const [insight, setInsight] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const sessionA = sessions.find((s) => s.id === idA);
-  const sessionB = sessions.find((s) => s.id === idB);
+  const filteredSessions = sessions.filter((s) => {
+    if (filter === 'free') return s.sessionType !== 'drill';
+    if (filter === 'drill') return s.sessionType === 'drill';
+    return true;
+  });
 
-  // Auto-select first two sessions
+  const sessionA = filteredSessions.find((s) => s.id === idA);
+  const sessionB = filteredSessions.find((s) => s.id === idB);
+
+  // Auto-select top two sessions when filter or sessions change
   useEffect(() => {
-    if (sessions.length >= 2 && !idA && !idB) {
-      setIdA(sessions[1].id);
-      setIdB(sessions[0].id);
-    } else if (sessions.length === 1 && !idA) {
-      setIdA(sessions[0].id);
+    if (filteredSessions.length >= 2) {
+      setIdA(filteredSessions[1].id);
+      setIdB(filteredSessions[0].id);
+    } else if (filteredSessions.length === 1) {
+      setIdA(filteredSessions[0].id);
+      setIdB('');
+    } else {
+      setIdA('');
+      setIdB('');
     }
-  }, [sessions]);
+  }, [filter, sessions]);
 
   // Fetch insight when both selected
   useEffect(() => {
@@ -91,7 +102,7 @@ export default function Compare() {
 
   return (
     <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-[72px] pb-20 max-[680px]:px-5">
-      <div className="mb-10">
+      <div className="mb-8">
         <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">Progress</div>
         <h2 className="font-serif text-[34px] leading-[1.15] font-normal mb-2.5 max-[680px]:text-[26px]">
           How far have<br />you <em className="italic text-accent">come?</em>
@@ -99,28 +110,61 @@ export default function Compare() {
         <p className="text-[13px] text-text2 mt-2.5">Pick two sessions and see what's changed.</p>
       </div>
 
-      {/* Session picker */}
-      <div className="grid grid-cols-[1fr_40px_1fr] gap-3 items-center mb-9">
-        <select value={idA} onChange={(e) => setIdA(e.target.value)}
-          className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none">
-          <option value="">Select session…</option>
-          {sessions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
-            </option>
-          ))}
-        </select>
-        <div className="font-serif italic text-[20px] text-text3 text-center">vs</div>
-        <select value={idB} onChange={(e) => setIdB(e.target.value)}
-          className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none">
-          <option value="">Select session…</option>
-          {sessions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
-            </option>
-          ))}
-        </select>
+      {/* Category Filter Tabs */}
+      <div className="flex border-b border-b-border mb-6">
+        {[
+          { id: 'all', label: 'All Sessions' },
+          { id: 'free', label: '🎙 Free Talk Only' },
+          { id: 'drill', label: '🎯 Question Drills Only' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setFilter(tab.id)}
+            className={`pb-3 px-4 font-sans text-[13px] font-medium transition-all cursor-pointer bg-transparent border-b-2 ${
+              filter === tab.id
+                ? 'border-accent text-accent'
+                : 'border-transparent text-text3 hover:text-text2'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* Session picker */}
+      {filteredSessions.length >= 2 ? (
+        <div className="grid grid-cols-[1fr_40px_1fr] gap-3 items-center mb-9">
+          <select
+            value={idA}
+            onChange={(e) => setIdA(e.target.value)}
+            className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none"
+          >
+            <option value="">Select session…</option>
+            {filteredSessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
+              </option>
+            ))}
+          </select>
+          <div className="font-serif italic text-[20px] text-text3 text-center">vs</div>
+          <select
+            value={idB}
+            onChange={(e) => setIdB(e.target.value)}
+            className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none"
+          >
+            <option value="">Select session…</option>
+            {filteredSessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="p-6 bg-surface border border-border rounded-xl text-center text-[13px] text-text3 mb-8">
+          You need at least 2 sessions in this category ({filter === 'free' ? 'Free Talk' : 'Question Drills'}) to perform a direct comparison.
+        </div>
+      )}
 
       {/* Delta grid */}
       {sessionA && sessionB && (

@@ -66,11 +66,17 @@ const useSessionStore = create((set, get) => ({
       currentDrillIndex: 0,
       drillAnswers: [],
     }),
+
+  // Add or update answer (deduplicates by questionIndex)
   addDrillAnswer: (answer) =>
-    set((state) => ({
-      drillAnswers: [...state.drillAnswers, answer],
-    })),
+    set((state) => {
+      const filtered = state.drillAnswers.filter((a) => a.questionIndex !== answer.questionIndex);
+      const updated = [...filtered, answer].sort((a, b) => a.questionIndex - b.questionIndex);
+      return { drillAnswers: updated };
+    }),
+
   setCurrentDrillIndex: (idx) => set({ currentDrillIndex: idx }),
+
   resetDrill: () =>
     set({
       drillQuestions: [],
