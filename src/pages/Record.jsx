@@ -206,7 +206,7 @@ export default function Record() {
   const isWarning = timerSecs > 0 && elapsed >= timerSecs * 0.8 && elapsed < timerSecs;
 
   return (
-    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-12 pb-20 max-[680px]:px-5 flex flex-col items-center text-center">
+    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-6 pb-20 max-[680px]:px-5 flex flex-col items-center text-center">
       {/* Speech Notice */}
       {showNotice && (
         <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-6">
@@ -215,7 +215,7 @@ export default function Record() {
       )}
 
       {/* Active Topic Banner */}
-      <div className="w-full mb-8 p-5 bg-surface border border-border-md rounded-2xl shadow-xl relative overflow-hidden">
+      <div className="w-full mb-6 p-5 bg-surface border border-border-md rounded-2xl shadow-xl relative overflow-hidden">
         <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1.5 flex items-center justify-center gap-2">
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
           Active Topic
@@ -227,7 +227,7 @@ export default function Record() {
 
       {/* Timer Presets (when not recording) */}
       {!isRecording && (
-        <div className="flex gap-2 mb-8 justify-center flex-wrap">
+        <div className="flex gap-2 mb-6 justify-center flex-wrap">
           {TIMER_PRESETS.map((p, i) => (
             <button
               key={p.label}
@@ -250,7 +250,7 @@ export default function Record() {
       {/* Big Display Timer */}
       <div
         onClick={() => setTimerHidden(!timerHidden)}
-        className={`font-serif text-[92px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
+        className={`font-serif text-[84px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
           isWarning ? 'text-orange animate-pulse' : 'text-text'
         } ${timerHidden ? 'opacity-[0.08]' : ''}`}
       >
@@ -258,18 +258,20 @@ export default function Record() {
       </div>
       <div
         onClick={() => setTimerHidden(!timerHidden)}
-        className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-8"
+        className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-6"
       >
         tap to {timerHidden ? 'show' : 'hide'} timer
       </div>
 
-      {/* Audio Waveform & Live Stats */}
+      {/* Audio Waveform & Always-Visible Sticky Timer Badge */}
       <div className="mb-6 w-full flex flex-col items-center">
         <WaveForm isActive={isRecording && !isPaused} />
         {isRecording && (
-          <div className="flex items-center gap-4 text-[12px] text-text3 mt-3">
+          <div className="flex items-center gap-3 text-[13px] text-text2 mt-3 font-mono bg-surface border border-border-md px-4 py-1.5 rounded-full shadow-md">
+            <span>⏱ <strong>{displayTime()}</strong></span>
+            <span className="text-text3">·</span>
             <span>Words: <strong className="text-text">{wordCount}</strong></span>
-            <span>·</span>
+            <span className="text-text3">·</span>
             <span>Status: <strong className={isPaused ? 'text-amber-400' : 'text-green'}>{isPaused ? 'Paused' : 'Recording'}</strong></span>
           </div>
         )}
@@ -279,7 +281,7 @@ export default function Record() {
       {(finalText || interimText) && (
         <div
           ref={liveRef}
-          className="w-full max-w-[620px] min-h-[80px] max-h-[220px] overflow-y-auto bg-surface border border-border-md rounded-2xl p-[20px_24px] text-[15px] leading-[1.85] text-text2 italic text-left mb-8 shadow-inner"
+          className="w-full max-w-[620px] min-h-[80px] max-h-[220px] overflow-y-auto bg-surface border border-border-md rounded-2xl p-[20px_24px] text-[15px] leading-[1.85] text-text2 italic text-left mb-6 shadow-inner"
         >
           <span className="text-text">{finalText}</span>
           <span className="text-text3"> {interimText}</span>
@@ -308,7 +310,7 @@ export default function Record() {
             {isPaused ? (
               <button
                 onClick={handleResume}
-                className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95"
+                className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
               >
                 ▶ Resume Recording
               </button>
@@ -324,7 +326,7 @@ export default function Record() {
             {/* Stop & Analyze Button */}
             <button
               onClick={handleStop}
-              className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-7 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95"
+              className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-7 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95 shadow-md"
             >
               ⏹ Finish & Analyze →
             </button>

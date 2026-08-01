@@ -68,3 +68,28 @@ export async function compareInsight(sessionA, sessionB) {
     return `Your scores are close — consistency is key. Focus on one metric at a time, like reducing pauses, and you'll see compounding gains.`;
   }
 }
+
+export async function fetchLadderQuestion(domain, level, previousQuestions = []) {
+  try {
+    let res = await fetch('/api/generate-ladder-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain, level, previousQuestions }),
+    });
+
+    if (!res.ok && res.status === 404) {
+      res = await fetch('http://localhost:3001/api/generate-ladder-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, level, previousQuestions }),
+      });
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    console.error('Fetch ladder question error:', err);
+    return null;
+  }
+}

@@ -135,5 +135,64 @@ app.post('/api/extract-questions', async (req, res) => {
   }
 });
 
+// POST /api/generate-ladder-question — AI progressive topic question generator
+app.post('/api/generate-ladder-question', async (req, res) => {
+  try {
+    const { domain, level, previousQuestions } = req.body;
+    if (!domain) return res.status(400).json({ error: 'Domain required' });
+
+    const prevList = (previousQuestions || []).join('\n- ');
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 512,
+        system: `You are an expert speech coach creating a progressive difficulty topic ladder.
+Generate a single speech prompt for Domain: "${domain}" at Difficulty Level ${level || 1}.
+
+Guidelines for Level Progression:
+- Level 1: Warm-up / Easy personal memory or favorite aspect.
+- Level 2: Deep Analysis / Medium — requires structured reasoning or trade-off evaluation.
+- Level 3: High-Stakes Debate / Hard — requires handling counter-arguments or controversy.
+- Level 4: Complex Ethics / Policy — structural dilemmas and long-term implications.
+- Level 5+: Mastermind Challenge — radical restructuring, crisis scenarios, or deep domain edge cases.
+
+Return ONLY a raw JSON object with keys:
+{
+  "questionText": "The question string here",
+  "hint": "Short 1-sentence tip on how to structure the answer"
+}
+Do not include markdown codeblocks or extra text.`,
+        messages: [
+          {
+            role: 'user',
+            content: `Domain: ${domain}\nTarget Level: ${level}\nPrevious questions asked so far:\n- ${prevList || 'None'}\n\nGenerate Level ${level} question:`,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) return res.status(500).json({ error: data.error.message });
+
+    const rawContent = data.content?.[0]?.text || '{}';
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    res.json({
+      questionText: parsed.questionText || '',
+      hint: parsed.hint || '',
+    });
+  } catch (err) {
+    console.error('Generate Ladder Question API error:', err);
+    res.status(500).json({ error: 'Failed to generate progressive question' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API proxy running on http://localhost:${PORT}`));

@@ -6,7 +6,7 @@ export default function Topbar() {
   const selectedContext = useSessionStore((s) => s.selectedContext);
   const sessionType = useSessionStore((s) => s.sessionType);
 
-  const showBadge = ['/record', '/drill-record', '/processing', '/results'].some((p) =>
+  const showBadge = ['/record', '/drill-record', '/ladder-record', '/processing', '/results'].some((p) =>
     location.pathname.startsWith(p)
   );
 
@@ -40,7 +40,7 @@ export default function Topbar() {
           to="/context"
           className={({ isActive }) =>
             `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light ${
-              isActive || (location.pathname === '/record' && sessionType !== 'drill')
+              isActive || (location.pathname === '/record' && sessionType === 'free')
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
             }`
@@ -63,6 +63,19 @@ export default function Topbar() {
         </NavLink>
 
         <NavLink
+          to="/ladder-setup"
+          className={({ isActive }) =>
+            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light flex items-center gap-1 ${
+              isActive || location.pathname === '/ladder-record' || (location.pathname === '/record' && sessionType === 'ladder')
+                ? 'text-accent bg-accent-dim font-medium'
+                : 'text-text2 hover:text-text hover:bg-surface2'
+            }`
+          }
+        >
+          Topic Ladders 🪜
+        </NavLink>
+
+        <NavLink
           to="/compare"
           className={({ isActive }) =>
             `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light max-[640px]:hidden ${
@@ -80,7 +93,7 @@ export default function Topbar() {
       <div className="flex items-center gap-2">
         {showBadge && (
           <div className="text-[11px] bg-accent-dim border border-accent-border text-accent px-3 py-1 rounded-full tracking-[0.02em] font-medium max-w-[140px] truncate">
-            {selectedContext || (sessionType === 'drill' ? 'Question Drill' : 'Free Talk')}
+            {selectedContext || (sessionType === 'ladder' ? 'Topic Ladder' : sessionType === 'drill' ? 'Question Drill' : 'Free Talk')}
           </div>
         )}
       </div>

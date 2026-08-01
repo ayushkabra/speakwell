@@ -42,11 +42,11 @@ export default function Results() {
 
   const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
-  const isDrill = sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
+  const isLadder = sessionType === 'ladder';
+  const isDrill = isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   const handleCopyPolished = () => {
     if (!polishedScript) return;
-    // Strip markdown formatting for clipboard copy
     const cleanText = polishedScript.replace(/\*\*/g, '');
     navigator.clipboard.writeText(cleanText);
     setCopied(true);
@@ -64,11 +64,11 @@ export default function Results() {
 
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1.5">
-            {isDrill ? 'Question Drill Results' : 'Session Results'}
+          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1.5 flex items-center gap-2">
+            {isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? 'Question Drill Results' : 'Session Results'}
           </div>
           <h2 className="font-serif text-[28px] text-text font-normal">
-            {isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+            {isLadder ? 'Endless Ladder Performance' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
           </h2>
         </div>
       </div>
@@ -82,11 +82,11 @@ export default function Results() {
         ))}
       </div>
 
-      {/* Question-by-Question Drill Breakdown (If Drill Session) */}
-      {isDrill && (
+      {/* Question / Level Breakdown */}
+      {isDrill && drillAnswers && drillAnswers.length > 0 && (
         <div className="mb-8 p-6 bg-surface border border-border-md rounded-2xl">
-          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4">
-            Question-by-Question Breakdown ({drillAnswers.length} Questions)
+          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 flex items-center justify-between">
+            <span>{isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
           </div>
           <div className="flex flex-col gap-3">
             {drillAnswers.map((ans, idx) => (
@@ -99,10 +99,10 @@ export default function Results() {
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface2"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium">
-                      Q{idx + 1}
+                    <span className="w-7 h-7 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium">
+                      {isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
                     </span>
-                    <div className="font-sans text-[14px] text-text font-medium truncate max-w-[440px]">
+                    <div className="font-sans text-[14px] text-text font-medium truncate max-w-[420px]">
                       {ans.questionText}
                     </div>
                   </div>
@@ -192,10 +192,10 @@ export default function Results() {
       {/* Actions */}
       <div className="flex gap-3 pt-2 flex-wrap">
         <button
-          onClick={() => navigate(isDrill ? '/drill-setup' : '/context')}
+          onClick={() => navigate(isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
           className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]"
         >
-          {isDrill ? 'Practice another drill →' : 'New session →'}
+          {isLadder ? 'Practice another Topic Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
         </button>
         <button
           onClick={() => navigate('/compare')}

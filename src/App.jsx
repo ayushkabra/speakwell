@@ -6,6 +6,8 @@ import Context from './pages/Context';
 import Record from './pages/Record';
 import DrillSetup from './pages/DrillSetup';
 import DrillRecord from './pages/DrillRecord';
+import LadderSetup from './pages/LadderSetup';
+import LadderRecord from './pages/LadderRecord';
 import Processing from './pages/Processing';
 import Results from './pages/Results';
 import Compare from './pages/Compare';
@@ -21,6 +23,8 @@ export default function App() {
           <Route path="/record" element={<Record />} />
           <Route path="/drill-setup" element={<DrillSetup />} />
           <Route path="/drill-record" element={<DrillRecord />} />
+          <Route path="/ladder-setup" element={<LadderSetup />} />
+          <Route path="/ladder-record" element={<LadderRecord />} />
           <Route path="/processing" element={<Processing />} />
           <Route path="/results" element={<Results />} />
           <Route path="/compare" element={<Compare />} />

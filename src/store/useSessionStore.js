@@ -20,7 +20,7 @@ const useSessionStore = create((set, get) => ({
   // All saved sessions
   sessions: loadSessions(),
 
-  // Current session type: 'free' | 'drill'
+  // Current session type: 'free' | 'drill' | 'ladder'
   sessionType: 'free',
 
   // Free talk state
@@ -37,6 +37,11 @@ const useSessionStore = create((set, get) => ({
   drillTimerSecs: 60,
   currentDrillIndex: 0,
   drillAnswers: [],
+
+  // Topic Ladder state
+  ladderDomain: '',
+  ladderLevel: 1,
+  ladderAnswers: [],
 
   // Current results (after recording)
   currentSession: null,
@@ -67,7 +72,6 @@ const useSessionStore = create((set, get) => ({
       drillAnswers: [],
     }),
 
-  // Add or update answer (deduplicates by questionIndex)
   addDrillAnswer: (answer) =>
     set((state) => {
       const filtered = state.drillAnswers.filter((a) => a.questionIndex !== answer.questionIndex);
@@ -82,6 +86,31 @@ const useSessionStore = create((set, get) => ({
       drillQuestions: [],
       currentDrillIndex: 0,
       drillAnswers: [],
+    }),
+
+  // Ladder Actions
+  setLadderDomain: (domain) =>
+    set({
+      sessionType: 'ladder',
+      ladderDomain: domain,
+      ladderLevel: 1,
+      ladderAnswers: [],
+    }),
+
+  addLadderAnswer: (answer) =>
+    set((state) => {
+      const filtered = state.ladderAnswers.filter((a) => a.level !== answer.level);
+      const updated = [...filtered, answer].sort((a, b) => a.level - b.level);
+      return { ladderAnswers: updated };
+    }),
+
+  setLadderLevel: (lvl) => set({ ladderLevel: lvl }),
+
+  resetLadder: () =>
+    set({
+      ladderDomain: '',
+      ladderLevel: 1,
+      ladderAnswers: [],
     }),
 
   setCurrentSession: (session) => set({ currentSession: session }),
