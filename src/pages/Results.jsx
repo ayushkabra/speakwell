@@ -15,7 +15,7 @@ function formatPolishedHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent font-sans text-[17px] font-semibold block mt-4 mb-1">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent font-sans text-[16px] font-semibold block mt-4 mb-1">$1</strong>')
     .replace(/^• (.*$)/gm, '<li class="ml-4 list-disc text-text2 my-1">$1</li>');
 }
 
@@ -54,7 +54,7 @@ export default function Results() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5 relative">
+    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-10 pb-20 max-[768px]:px-5 relative">
       {/* Copied Toast Notification */}
       {copied && (
         <div className="fixed bottom-6 right-6 bg-accent text-[#0e0e0d] font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 text-[13px] animate-fade-up flex items-center gap-2">
@@ -62,147 +62,149 @@ export default function Results() {
         </div>
       )}
 
-      <div className="mb-8 flex items-center justify-between">
+      {/* Header */}
+      <div className="mb-8 border-b border-border/60 pb-4 flex items-center justify-between">
         <div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1.5 flex items-center gap-2">
-            {isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? 'Question Drill Results' : 'Session Results'}
+          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1 flex items-center gap-2">
+            {isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
           </div>
-          <h2 className="font-serif text-[28px] text-text font-normal">
-            {isLadder ? 'Endless Ladder Performance' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+          <h2 className="font-serif text-[32px] text-text font-normal">
+            {isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
           </h2>
         </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate(isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
+            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
+          >
+            {isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
+          </button>
+        </div>
       </div>
 
-      <ScoreHero score={metrics.overall} context={context} duration={fmt(durationSecs)} note={note} />
+      {/* 2-Column Split Dashboard Layout */}
+      <div className="grid grid-cols-[40%_60%] gap-8 items-start max-[900px]:grid-cols-1">
+        {/* LEFT COLUMN: Score Hero & 6 Metrics Grid */}
+        <div className="flex flex-col gap-6">
+          <ScoreHero score={metrics.overall} context={context} duration={fmt(durationSecs)} note={note} />
 
-      {/* Metrics grid */}
-      <div className="grid grid-cols-3 gap-2.5 mb-8 max-[680px]:grid-cols-2">
-        {['wpm', 'clarity', 'flow', 'fillers', 'grammar', 'pauses'].map((key) => (
-          <MetricCard key={key} metricKey={key} value={metrics[key]} />
-        ))}
-      </div>
-
-      {/* Question / Level Breakdown */}
-      {isDrill && drillAnswers && drillAnswers.length > 0 && (
-        <div className="mb-8 p-6 bg-surface border border-border-md rounded-2xl">
-          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 flex items-center justify-between">
-            <span>{isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {drillAnswers.map((ans, idx) => (
-              <div
-                key={idx}
-                className="border border-border rounded-xl bg-surface2/60 overflow-hidden transition-all"
-              >
-                <div
-                  onClick={() => setExpandedQuestion(expandedQuestion === idx ? null : idx)}
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface2"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium">
-                      {isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
-                    </span>
-                    <div className="font-sans text-[14px] text-text font-medium truncate max-w-[420px]">
-                      {ans.questionText}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[12px] text-text3">{fmt(ans.durationSecs)}</span>
-                    <span className="font-serif italic text-accent text-[18px]">
-                      {ans.metrics?.overall || '—'}
-                    </span>
-                    <span className="text-text3 text-[14px]">
-                      {expandedQuestion === idx ? '▲' : '▼'}
-                    </span>
-                  </div>
-                </div>
-
-                {expandedQuestion === idx && (
-                  <div className="p-4 pt-2 border-t border-border bg-surface/80">
-                    <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Your Answer</div>
-                    <div className="text-[14px] text-text2 leading-[1.7] mb-3 p-3 bg-surface border border-border rounded-lg">
-                      {ans.transcript}
-                    </div>
-                    <div className="flex gap-4 text-[12px] text-text3">
-                      <span>WPM: <strong className="text-text">{ans.metrics?.wpm}</strong></span>
-                      <span>Clarity: <strong className="text-text">{ans.metrics?.clarity}%</strong></span>
-                      <span>Fillers: <strong className="text-text">{ans.metrics?.fillers}</strong></span>
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Metrics grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {['wpm', 'clarity', 'flow', 'fillers', 'grammar', 'pauses'].map((key) => (
+              <MetricCard key={key} metricKey={key} value={metrics[key]} />
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Tabs */}
-      <div className="flex items-center justify-between border-b border-b-border mb-6">
-        <div className="flex gap-0">
-          {['transcript', 'polished'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
-                ${activeTab === tab ? 'text-accent border-b-accent font-medium' : 'text-text3 border-b-transparent'}`}
-            >
-              {tab === 'transcript' ? 'Full Session Transcript' : 'Polished Script'}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'polished' && polishedScript && (
           <button
-            onClick={handleCopyPolished}
-            className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium pb-1"
+            onClick={() => navigate('/compare')}
+            className="w-full inline-flex items-center justify-center gap-2 bg-surface border border-border-md rounded-xl p-3.5 font-sans text-[13px] text-text2 font-medium cursor-pointer transition-all hover:border-accent-border hover:text-text shadow-sm"
           >
-            📋 {copied ? 'Copied!' : 'Copy Script'}
+            ↔ Compare with previous sessions
           </button>
-        )}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'transcript' && (
-        <div
-          className="text-[15px] leading-[2.1] text-text2 p-[24px_28px] bg-surface border border-border rounded-[14px] mb-7 whitespace-pre-wrap font-sans"
-          dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript available.' }}
-        />
-      )}
-
-      {activeTab === 'polished' && (
-        <div className="bg-surface border border-border-md rounded-[14px] p-7 mb-7">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] tracking-[0.18em] uppercase text-text3">
-              Executive Polished Version
-            </div>
-            <button
-              onClick={handleCopyPolished}
-              className="text-[11px] bg-accent/15 text-accent border border-accent/30 px-3 py-1 rounded-full cursor-pointer hover:bg-accent/25 transition-all"
-            >
-              📋 {copied ? 'Copied!' : 'Copy to Clipboard'}
-            </button>
-          </div>
-          <div
-            className="font-sans text-[15px] leading-[1.85] text-text whitespace-pre-wrap text-left"
-            dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating polished script...' }}
-          />
         </div>
-      )}
 
-      {/* Actions */}
-      <div className="flex gap-3 pt-2 flex-wrap">
-        <button
-          onClick={() => navigate(isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
-          className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-86 active:scale-[0.96]"
-        >
-          {isLadder ? 'Practice another Topic Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
-        </button>
-        <button
-          onClick={() => navigate('/compare')}
-          className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
-        >
-          ↔ Compare sessions
-        </button>
+        {/* RIGHT COLUMN: Question Breakdown & Transcript / Executive Polished Script */}
+        <div className="flex flex-col gap-6">
+          {/* Question / Level Breakdown Cards */}
+          {isDrill && drillAnswers && drillAnswers.length > 0 && (
+            <div className="p-6 bg-surface border border-border-md rounded-2xl shadow-xl">
+              <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 font-medium flex items-center justify-between">
+                <span>{isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
+              </div>
+              <div className="flex flex-col gap-3">
+                {drillAnswers.map((ans, idx) => (
+                  <div
+                    key={idx}
+                    className="border border-border rounded-xl bg-surface2/60 overflow-hidden transition-all"
+                  >
+                    <div
+                      onClick={() => setExpandedQuestion(expandedQuestion === idx ? null : idx)}
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface2"
+                    >
+                      <div className="flex items-center gap-3 truncate max-w-[70%]">
+                        <span className="w-7 h-7 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium shrink-0">
+                          {isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
+                        </span>
+                        <div className="font-sans text-[14px] text-text font-medium truncate">
+                          {ans.questionText}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[12px] text-text3">{fmt(ans.durationSecs)}</span>
+                        <span className="font-serif italic text-accent text-[18px]">
+                          {ans.metrics?.overall || '—'}
+                        </span>
+                        <span className="text-text3 text-[14px]">
+                          {expandedQuestion === idx ? '▲' : '▼'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {expandedQuestion === idx && (
+                      <div className="p-4 pt-2 border-t border-border bg-surface/80">
+                        <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Your Answer</div>
+                        <div className="text-[14px] text-text2 leading-[1.7] mb-3 p-3 bg-surface border border-border rounded-lg">
+                          {ans.transcript}
+                        </div>
+                        <div className="flex gap-4 text-[12px] text-text3">
+                          <span>WPM: <strong className="text-text">{ans.metrics?.wpm}</strong></span>
+                          <span>Clarity: <strong className="text-text">{ans.metrics?.clarity}%</strong></span>
+                          <span>Fillers: <strong className="text-text">{ans.metrics?.fillers}</strong></span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Transcript / Polished Script Tab Box */}
+          <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
+            {/* Tabs */}
+            <div className="flex items-center justify-between border-b border-b-border mb-6">
+              <div className="flex gap-0">
+                {['transcript', 'polished'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
+                      ${activeTab === tab ? 'text-accent border-b-accent font-medium' : 'text-text3 border-b-transparent'}`}
+                  >
+                    {tab === 'transcript' ? 'Full Session Transcript' : 'Executive Polished Version'}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === 'polished' && polishedScript && (
+                <button
+                  onClick={handleCopyPolished}
+                  className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium pb-1"
+                >
+                  📋 {copied ? 'Copied!' : 'Copy Script'}
+                </button>
+              )}
+            </div>
+
+            {/* Tab content */}
+            {activeTab === 'transcript' && (
+              <div
+                className="text-[15px] leading-[2] text-text2 p-5 bg-surface2/50 border border-border rounded-xl whitespace-pre-wrap font-sans max-h-[460px] overflow-y-auto"
+                dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript available.' }}
+              />
+            )}
+
+            {activeTab === 'polished' && (
+              <div className="p-5 bg-surface2/50 border border-border rounded-xl max-h-[460px] overflow-y-auto">
+                <div
+                  className="font-sans text-[15px] leading-[1.85] text-text whitespace-pre-wrap text-left"
+                  dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating polished script...' }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

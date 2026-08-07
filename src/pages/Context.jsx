@@ -59,17 +59,17 @@ export default function Context() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-[60px] pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-12 pb-20 max-[680px]:px-5">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">
             Free Talk Mode
           </div>
-          <h2 className="font-serif text-[36px] leading-[1.12] font-normal mb-2 max-[680px]:text-[28px]">
+          <h2 className="font-serif text-[40px] leading-[1.12] font-normal mb-2 max-[680px]:text-[28px]">
             What are you <em className="italic text-accent">preparing for?</em>
           </h2>
-          <p className="text-[14px] text-text2 leading-[1.6]">
+          <p className="text-[15px] text-text2 leading-[1.6]">
             Choose a context, type your own topic, or spin a random prompt to test your impromptu speaking skills.
           </p>
         </div>
@@ -102,13 +102,13 @@ export default function Context() {
       {/* TAB 1: STANDARD CONTEXT & CUSTOM TOPIC */}
       {activeTab === 'choose' && (
         <>
-          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5">
+          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5 font-medium">
             Choose a context
           </div>
           <ChipGrid selected={selectedContext} onSelect={handleSelectChip} />
 
           <div className="mb-8">
-            <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5">
+            <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5 font-medium">
               Anything specific? <span className="text-[10px] text-text3 tracking-normal">(optional)</span>
             </div>
             <textarea
@@ -116,7 +116,7 @@ export default function Context() {
               onChange={(e) => setCustomContext(e.target.value)}
               placeholder='"Pitching my startup to investors in Hindi"'
               rows="3"
-              className="w-full bg-surface border border-border-md rounded-xl p-[14px_18px] font-sans text-[14px] text-text font-light resize-none outline-none transition-[border-color] duration-200 min-h-[76px] leading-[1.6] placeholder:text-text3 focus:border-accent-border"
+              className="w-full bg-surface border border-border-md rounded-xl p-[14px_18px] font-sans text-[14px] text-text font-light resize-none outline-none transition-[border-color] duration-200 min-h-[86px] leading-[1.6] placeholder:text-text3 focus:border-accent-border shadow-sm"
             />
           </div>
         </>
@@ -127,7 +127,7 @@ export default function Context() {
         <div className="mb-8">
           {/* Difficulty selector */}
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div className="text-[11px] tracking-[0.15em] uppercase text-text3">
+            <div className="text-[11px] tracking-[0.15em] uppercase text-text3 font-medium">
               Difficulty Level
             </div>
             <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export default function Context() {
                     setDifficulty(lvl.id);
                     setCurrentTopic(getRandomTopic(lvl.id));
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-sans transition-all cursor-pointer border ${
+                  className={`px-3.5 py-1.5 rounded-lg text-[12px] font-sans transition-all cursor-pointer border ${
                     difficulty === lvl.id
                       ? 'bg-accent/20 text-accent border-accent/40 font-medium'
                       : 'bg-surface text-text3 border-border hover:text-text'
@@ -156,15 +156,15 @@ export default function Context() {
           </div>
 
           {/* Animated Spinner Card */}
-          <div className="p-8 bg-surface border border-border-md rounded-2xl text-center shadow-xl relative overflow-hidden mb-6">
+          <div className="p-10 bg-surface border border-border-md rounded-2xl text-center shadow-xl relative overflow-hidden mb-6">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="text-[10px] tracking-[0.18em] uppercase text-accent bg-accent/10 border border-accent/20 px-3 py-1 rounded-full font-medium">
+              <span className="text-[10px] tracking-[0.18em] uppercase text-accent bg-accent/10 border border-accent/20 px-3.5 py-1 rounded-full font-medium">
                 {currentTopic.category || 'Random Topic'}
               </span>
             </div>
 
             <h3
-              className={`font-serif text-[26px] leading-[1.3] text-text font-normal max-w-[580px] mx-auto min-h-[78px] flex items-center justify-center transition-all duration-150 ${
+              className={`font-serif text-[28px] leading-[1.35] text-text font-normal max-w-[700px] mx-auto min-h-[86px] flex items-center justify-center transition-all duration-150 ${
                 isSpinning ? 'opacity-40 scale-[0.98] blur-[0.5px]' : 'opacity-100 scale-100'
               }`}
             >
@@ -175,7 +175,7 @@ export default function Context() {
               <button
                 onClick={handleSpinTopic}
                 disabled={isSpinning}
-                className="inline-flex items-center gap-2 bg-surface2 text-text border border-border-md hover:border-accent-border rounded-xl px-5 py-2.5 font-sans text-[13px] font-medium cursor-pointer transition-all active:scale-[0.96]"
+                className="inline-flex items-center gap-2 bg-surface2 text-text border border-border-md hover:border-accent-border rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all active:scale-[0.96] shadow-sm"
               >
                 <span className={isSpinning ? 'animate-spin' : ''}>🎲</span>
                 {isSpinning ? 'Spinning...' : 'Spin New Topic'}
@@ -186,8 +186,8 @@ export default function Context() {
       )}
 
       {/* Optional Timer Selector */}
-      <div className="mb-9 p-5 bg-surface border border-border rounded-xl">
-        <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3">
+      <div className="mb-9 p-6 bg-surface border border-border rounded-xl shadow-sm">
+        <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3 font-medium">
           Optional Session Timer <span className="text-text3 tracking-normal">(user choice)</span>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -197,7 +197,7 @@ export default function Context() {
               onClick={() => setSelectedTimer(p.secs)}
               className={`px-4 py-2 rounded-lg text-[13px] font-sans transition-all cursor-pointer border ${
                 selectedTimer === p.secs
-                  ? 'bg-accent text-[#0e0e0d] border-accent font-medium'
+                  ? 'bg-accent text-[#0e0e0d] border-accent font-medium shadow-md'
                   : 'bg-transparent text-text2 border-border-md hover:border-border-hi hover:text-text font-light'
               }`}
             >
@@ -207,12 +207,12 @@ export default function Context() {
         </div>
       </div>
 
-      {/* Action Buttons (Smooth Scroll Target) */}
+      {/* Action Buttons */}
       <div ref={actionSectionRef} className="flex items-center gap-3 flex-wrap pt-2">
         {activeTab === 'spinner' ? (
           <button
             onClick={() => handleStart(currentTopic.text)}
-            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] tracking-[0.01em] hover:opacity-86 active:scale-[0.96]"
+            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] tracking-[0.01em] hover:opacity-90 active:scale-[0.96] shadow-lg"
           >
             Start Speaking on this Topic →
           </button>
@@ -220,13 +220,13 @@ export default function Context() {
           <>
             <button
               onClick={() => handleStart()}
-              className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-[10px] px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] tracking-[0.01em] hover:opacity-86 active:scale-[0.96]"
+              className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all duration-[180ms] tracking-[0.01em] hover:opacity-90 active:scale-[0.96] shadow-lg"
             >
               Set context & start →
             </button>
             <button
               onClick={() => handleStart('')}
-              className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-[10px] px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
+              className="inline-flex items-center gap-2 bg-transparent text-text2 border border-border-md rounded-xl px-6 py-[13px] font-sans text-[13px] font-light cursor-pointer transition-all duration-[180ms] hover:border-border-hi hover:text-text"
             >
               Skip — just start talking
             </button>

@@ -57,7 +57,7 @@ export default function Record() {
   useEffect(() => {
     if (!isSpeechSupported()) {
       setSpeechSupported(false);
-      setShowNotice('⚠ Speech recognition requires Chrome or Edge. Microphone access will be requested.');
+      setShowNotice('⚠ Speech recognition requires Chrome or Edge browser.');
     }
     return () => destroyRecognition();
   }, []);
@@ -74,14 +74,14 @@ export default function Record() {
       },
       onError: (error) => {
         if (error === 'not-allowed') {
-          setShowNotice('⚠ Microphone access denied. Please allow it in your browser settings and reload.');
+          setShowNotice('⚠ Microphone access denied. Please allow it in your browser settings.');
         }
       },
       onEnd: () => {},
     });
   }, []);
 
-  // Timer tick (only increments when recording AND not paused)
+  // Timer tick
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -121,13 +121,13 @@ export default function Record() {
     startListening();
   };
 
-  // Pause speech recognition (PRESERVES transcript & elapsed)
+  // Pause speech recognition
   const handlePause = () => {
     stopListening();
     setIsPaused(true);
   };
 
-  // Resume speech recognition (CONTINUES recording)
+  // Resume speech recognition
   const handleResume = () => {
     setIsPaused(false);
     startListening();
@@ -206,148 +206,172 @@ export default function Record() {
   const isWarning = timerSecs > 0 && elapsed >= timerSecs * 0.8 && elapsed < timerSecs;
 
   return (
-    <div className="animate-fade-up w-full max-w-[760px] mx-auto px-6 pt-6 pb-20 max-[680px]:px-5 flex flex-col items-center text-center">
+    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-16 max-[768px]:px-5">
       {/* Speech Notice */}
       {showNotice && (
-        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-6">
+        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-6 text-center">
           {showNotice}
         </div>
       )}
 
-      {/* Active Topic Banner */}
-      <div className="w-full mb-6 p-5 bg-surface border border-border-md rounded-2xl shadow-xl relative overflow-hidden">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1.5 flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
-          Active Topic
-        </div>
-        <h2 className="font-serif text-[22px] text-text font-normal leading-[1.3] max-w-[600px] mx-auto">
-          "{activeTopicDisplay}"
-        </h2>
-      </div>
-
-      {/* Timer Presets (when not recording) */}
-      {!isRecording && (
-        <div className="flex gap-2 mb-6 justify-center flex-wrap">
-          {TIMER_PRESETS.map((p, i) => (
-            <button
-              key={p.label}
-              onClick={() => {
-                setTimerSecs(p.secs);
-                setActivePreset(i);
-              }}
-              className={`text-[12px] px-4 py-1.5 border rounded-full cursor-pointer bg-transparent font-sans transition-all duration-[180ms] ${
-                activePreset === i
-                  ? 'border-accent-border text-accent bg-accent-dim font-medium'
-                  : 'border-border-md text-text3 hover:border-border-hi hover:text-text'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Big Display Timer */}
-      <div
-        onClick={() => setTimerHidden(!timerHidden)}
-        className={`font-serif text-[84px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
-          isWarning ? 'text-orange animate-pulse' : 'text-text'
-        } ${timerHidden ? 'opacity-[0.08]' : ''}`}
-      >
-        {displayTime()}
-      </div>
-      <div
-        onClick={() => setTimerHidden(!timerHidden)}
-        className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-6"
-      >
-        tap to {timerHidden ? 'show' : 'hide'} timer
-      </div>
-
-      {/* Audio Waveform & Always-Visible Sticky Timer Badge */}
-      <div className="mb-6 w-full flex flex-col items-center">
-        <WaveForm isActive={isRecording && !isPaused} />
-        {isRecording && (
-          <div className="flex items-center gap-3 text-[13px] text-text2 mt-3 font-mono bg-surface border border-border-md px-4 py-1.5 rounded-full shadow-md">
-            <span>⏱ <strong>{displayTime()}</strong></span>
-            <span className="text-text3">·</span>
-            <span>Words: <strong className="text-text">{wordCount}</strong></span>
-            <span className="text-text3">·</span>
-            <span>Status: <strong className={isPaused ? 'text-amber-400' : 'text-green'}>{isPaused ? 'Paused' : 'Recording'}</strong></span>
+      {/* 2-Column Split Dashboard Layout */}
+      <div className="grid grid-cols-[44%_56%] gap-8 items-start max-[900px]:grid-cols-1">
+        {/* LEFT COLUMN: Topic, Timer & Recording Controls */}
+        <div className="flex flex-col items-center text-center bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
+          {/* Active Topic Banner */}
+          <div className="w-full mb-6 p-4 bg-surface2/60 border border-border rounded-xl">
+            <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1 flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
+              Active Topic
+            </div>
+            <h2 className="font-serif text-[20px] text-text font-normal leading-[1.35]">
+              "{activeTopicDisplay}"
+            </h2>
           </div>
-        )}
-      </div>
 
-      {/* Live Transcript Display Box */}
-      {(finalText || interimText) && (
-        <div
-          ref={liveRef}
-          className="w-full max-w-[620px] min-h-[80px] max-h-[220px] overflow-y-auto bg-surface border border-border-md rounded-2xl p-[20px_24px] text-[15px] leading-[1.85] text-text2 italic text-left mb-6 shadow-inner"
-        >
-          <span className="text-text">{finalText}</span>
-          <span className="text-text3"> {interimText}</span>
-        </div>
-      )}
+          {/* Timer Presets */}
+          {!isRecording && (
+            <div className="flex gap-2 mb-6 justify-center flex-wrap">
+              {TIMER_PRESETS.map((p, i) => (
+                <button
+                  key={p.label}
+                  onClick={() => {
+                    setTimerSecs(p.secs);
+                    setActivePreset(i);
+                  }}
+                  className={`text-[12px] px-3.5 py-1 border rounded-full cursor-pointer bg-transparent font-sans transition-all duration-[180ms] ${
+                    activePreset === i
+                      ? 'border-accent-border text-accent bg-accent-dim font-medium'
+                      : 'border-border-md text-text3 hover:border-border-hi hover:text-text'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-      {/* Glowing Mic & Controls */}
-      <div className="flex flex-col items-center gap-4 mt-2">
-        {!isRecording ? (
-          <button
-            onClick={handleStart}
-            disabled={!speechSupported}
-            className={`w-24 h-24 rounded-full border-none cursor-pointer flex items-center justify-center transition-all duration-300 relative shadow-[0_0_40px_rgba(223,200,122,0.25)] hover:shadow-[0_0_60px_rgba(223,200,122,0.45)] hover:scale-105 active:scale-95 bg-accent ${
-              !speechSupported ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+          {/* Big Display Timer */}
+          <div
+            onClick={() => setTimerHidden(!timerHidden)}
+            className={`font-serif text-[76px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
+              isWarning ? 'text-orange animate-pulse' : 'text-text'
+            } ${timerHidden ? 'opacity-[0.08]' : ''}`}
           >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0e0e0d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-            </svg>
-          </button>
-        ) : (
-          <div className="flex items-center gap-4">
-            {/* Pause / Resume Button */}
-            {isPaused ? (
+            {displayTime()}
+          </div>
+          <div
+            onClick={() => setTimerHidden(!timerHidden)}
+            className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-6"
+          >
+            tap to {timerHidden ? 'show' : 'hide'} timer
+          </div>
+
+          {/* Audio Waveform */}
+          <div className="mb-6 w-full flex flex-col items-center">
+            <WaveForm isActive={isRecording && !isPaused} />
+          </div>
+
+          {/* Mic & Control Actions */}
+          <div className="flex flex-col items-center gap-4 w-full">
+            {!isRecording ? (
               <button
-                onClick={handleResume}
-                className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
+                onClick={handleStart}
+                disabled={!speechSupported}
+                className={`w-20 h-20 rounded-full border-none cursor-pointer flex items-center justify-center transition-all duration-300 relative shadow-[0_0_40px_rgba(223,200,122,0.25)] hover:shadow-[0_0_60px_rgba(223,200,122,0.45)] hover:scale-105 active:scale-95 bg-accent ${
+                  !speechSupported ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                ▶ Resume Recording
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0e0e0d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                </svg>
               </button>
             ) : (
-              <button
-                onClick={handlePause}
-                className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl px-6 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-amber-500/25 active:scale-95"
-              >
-                ⏸ Pause
-              </button>
+              <div className="flex items-center justify-center gap-3 flex-wrap w-full">
+                {isPaused ? (
+                  <button
+                    onClick={handleResume}
+                    className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
+                  >
+                    ▶ Resume
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePause}
+                    className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-amber-500/25 active:scale-95"
+                  >
+                    ⏸ Pause
+                  </button>
+                )}
+
+                <button
+                  onClick={handleStop}
+                  className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95 shadow-md"
+                >
+                  ⏹ Finish & Analyze →
+                </button>
+
+                <button
+                  onClick={handleReset}
+                  title="Discard & Reset"
+                  className="text-[13px] text-text3 hover:text-text bg-surface border border-border p-3 rounded-xl cursor-pointer transition-all"
+                >
+                  🔄
+                </button>
+              </div>
             )}
 
-            {/* Stop & Analyze Button */}
-            <button
-              onClick={handleStop}
-              className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-7 py-3 font-sans text-[14px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95 shadow-md"
-            >
-              ⏹ Finish & Analyze →
-            </button>
-
-            {/* Reset Button */}
-            <button
-              onClick={handleReset}
-              title="Discard & Reset"
-              className="text-[13px] text-text3 hover:text-text bg-surface border border-border p-3 rounded-xl cursor-pointer transition-all"
-            >
-              🔄 Reset
-            </button>
+            <div className="text-[12px] text-text3">
+              {isRecording
+                ? isPaused
+                  ? 'Recording paused — click Resume or Finish'
+                  : 'Recording in progress... speak freely'
+                : 'Tap the mic to start your speech session'}
+            </div>
           </div>
-        )}
+        </div>
 
-        <div className="text-[13px] text-text3">
-          {isRecording
-            ? isPaused
-              ? 'Recording paused — click Resume or Finish'
-              : 'Recording in progress... speak freely'
-            : 'Tap the mic to start your speech session'}
+        {/* RIGHT COLUMN: Live Spoken Transcript & Streaming Box */}
+        <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[460px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+              <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
+                <span>Live Spoken Transcript</span>
+                {isRecording && (
+                  <span className="w-2 h-2 rounded-full bg-green animate-ping inline-block" />
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-[12px] font-mono text-text3">
+                <span>Words: <strong className="text-text">{wordCount}</strong></span>
+                <span>·</span>
+                <span>Time: <strong className="text-text">{fmt(elapsed)}</strong></span>
+              </div>
+            </div>
+
+            <div
+              ref={liveRef}
+              className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[340px] max-h-[420px] overflow-y-auto pr-2"
+            >
+              {finalText || interimText ? (
+                <>
+                  <span className="text-text font-normal">{finalText}</span>
+                  <span className="text-text3"> {interimText}</span>
+                </>
+              ) : (
+                <div className="h-[300px] flex flex-col items-center justify-center text-center text-text3 italic">
+                  <span className="text-[32px] mb-2 opacity-50">🎙️</span>
+                  <span>Your live spoken words will stream here in real-time as you talk.</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-border/40 text-[12px] text-text3 flex items-center justify-between">
+            <span>Automatic filler word detection active</span>
+            <span>English / Hindi Auto-detected</span>
+          </div>
         </div>
       </div>
     </div>

@@ -63,7 +63,7 @@ export default function DrillRecord() {
     };
   }, []);
 
-  // Timer logic (DOES NOT STOP RECORDING WHEN REACHES 0)
+  // Timer logic
   useEffect(() => {
     if (isRecording) {
       timerRef.current = setInterval(() => {
@@ -91,7 +91,7 @@ export default function DrillRecord() {
     }
   }, [transcript, interim]);
 
-  // Start recording for current question
+  // Start recording
   const handleStart = () => {
     setTranscript('');
     setInterim('');
@@ -101,7 +101,7 @@ export default function DrillRecord() {
     startListening();
   };
 
-  // Restart current question answer
+  // Restart answer
   const handleRestartAnswer = () => {
     stopListening();
     setIsRecording(false);
@@ -111,7 +111,7 @@ export default function DrillRecord() {
     setTimeRemaining(drillTimerSecs);
   };
 
-  // Toggle recording pause/resume
+  // Toggle record
   const handleToggleRecord = () => {
     if (isRecording) {
       stopListening();
@@ -122,7 +122,7 @@ export default function DrillRecord() {
     }
   };
 
-  // Navigate back to Previous Question
+  // Navigate to Previous Question
   const handlePreviousQuestion = () => {
     stopListening();
     setIsRecording(false);
@@ -179,7 +179,6 @@ export default function DrillRecord() {
       const state = useSessionStore.getState();
       const allAnswers = state.drillAnswers;
 
-      // Navigate to Processing screen
       setProcessing(true);
       setProcessingStep(1);
       navigate('/processing');
@@ -216,7 +215,7 @@ export default function DrillRecord() {
       setProcessingStep(4);
       await delay(400);
 
-      const newSession = addSession({
+      addSession({
         context: `Question Drill (${allAnswers.length} Questions)`,
         sessionType: 'drill',
         drillAnswers: allAnswers,
@@ -253,154 +252,164 @@ export default function DrillRecord() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const wordCount = (transcript + ' ' + interim).trim().split(/\s+/).filter(Boolean).length;
+
   return (
-    <div className="w-full max-w-[800px] mx-auto min-h-[calc(100vh-60px)] flex flex-col justify-between relative">
-      {/* 1. STICKY TOP TIMER HEADER BAR (Always Pinned below Topbar) */}
-      <div className="sticky top-[60px] z-40 bg-[#0e0e0d]/95 backdrop-blur-xl px-6 py-3 border-b border-border/50 shadow-2xl flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {currentDrillIndex > 0 && (
-            <button
-              onClick={handlePreviousQuestion}
-              className="text-[12px] text-accent hover:underline bg-surface border border-border px-3 py-1 rounded-full cursor-pointer font-medium transition-all"
-            >
-              ← Previous Question
-            </button>
-          )}
-          <span className="bg-accent/15 text-accent border border-accent/30 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider">
-            Question {currentDrillIndex + 1} of {totalQuestions}
-          </span>
-        </div>
-
-        {/* Top Floating Timer Display */}
-        <div className="flex items-center gap-2">
-          {timeRemaining <= 3 && timeRemaining > 0 && isRecording && (
-            <span className="text-[18px] font-bold text-amber-400 animate-bounce">
-              {timeRemaining}...
-            </span>
-          )}
-          <div
-            className={`font-mono text-[14px] px-3.5 py-1 rounded-full border transition-all ${
-              timeRemaining <= 3 && timeRemaining > 0
-                ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold animate-pulse'
-                : timeRemaining === 0
-                ? 'bg-red-500/20 border-red-500 text-red-400 font-bold'
-                : 'bg-surface border-border text-text'
-            }`}
-          >
-            ⏱ {drillTimerSecs > 0 ? fmtTime(timeRemaining) : fmtTime(elapsed)}
-          </div>
-        </div>
-      </div>
-
-      {/* 2. MAIN CONTENT AREA */}
-      <div className="px-6 py-6 flex-1 flex flex-col gap-6 max-[680px]:px-5">
-        {/* Time's Up Banner (Recording Continues Uninterrupted!) */}
-        {drillTimerSecs > 0 && timeRemaining === 0 && isRecording && (
-          <div className="p-4 bg-amber-500/15 border border-amber-500/40 rounded-2xl text-amber-300 text-[13px] flex items-center justify-between shadow-lg animate-fade-up">
-            <span>⏱ <strong>Time's up for recommended pace!</strong> Keep speaking to finish your thought, or click <em>Next Question →</em> when ready.</span>
-          </div>
-        )}
-
-        {/* Question Display Card */}
-        <div className="p-7 bg-surface border border-border-md rounded-2xl shadow-xl">
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">
-            Current Question
-          </div>
-          <h2 className="font-serif text-[26px] leading-[1.3] text-text font-normal max-[680px]:text-[20px]">
-            "{currentQuestion}"
-          </h2>
-        </div>
-
-        {/* Live Answer Box (Fixed Max Height with Internal Scroll) */}
-        <div className="p-6 bg-surface/60 border border-border-md rounded-2xl shadow-inner flex flex-col justify-between min-h-[160px] max-h-[260px] overflow-hidden">
-          <div className="flex items-center justify-between mb-3 shrink-0">
-            <div className="text-[10px] tracking-[0.18em] uppercase text-text3 flex items-center gap-2">
-              {isRecording && (
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" />
-              )}
-              Your Spoken Answer ({fmtTime(elapsed)})
-            </div>
-            {isRecording && <WaveForm />}
-          </div>
-
-          <div ref={liveRef} className="overflow-y-auto font-sans text-[15px] leading-[1.75] text-text font-light flex-1 pr-1">
-            {transcript || interim ? (
-              <>
-                <span className="text-text">{transcript}</span>
-                {interim && <span className="text-text3 italic"> {interim}</span>}
-              </>
-            ) : (
-              <span className="text-text3 italic">
-                {isRecording
-                  ? 'Listening... Speak your answer freely.'
-                  : 'Tap "Start Answer" when you are ready.'}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {!hasSpeechSupport && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-[13px]">
-            ⚠️ Web Speech API requires Chrome or Edge browser.
-          </div>
-        )}
-      </div>
-
-      {/* 3. STICKY BOTTOM ACTION BAR (Pinned at bottom with Dual Timer) */}
-      <div className="sticky bottom-0 z-40 bg-[#0e0e0d]/95 backdrop-blur-xl px-6 py-4 border-t border-border/60 shadow-2xl flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          {!isRecording && !transcript ? (
-            <button
-              onClick={handleStart}
-              className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-lg"
-            >
-              🎙 Start Answer
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleToggleRecord}
-                className={`inline-flex items-center gap-2 border rounded-xl px-6 py-3 font-sans text-[13px] font-medium transition-all cursor-pointer ${
-                  isRecording
-                    ? 'bg-red-500/10 text-red-400 border-red-500/40 hover:bg-red-500/20'
-                    : 'bg-surface text-text border-border-md hover:border-border-hi'
-                }`}
-              >
-                {isRecording ? '⏸ Pause' : '▶ Resume Answer'}
-              </button>
-
-              {(transcript || elapsed > 0) && (
+    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-16 max-[768px]:px-5">
+      {/* 2-Column Split Dashboard Layout */}
+      <div className="grid grid-cols-[44%_56%] gap-8 items-start max-[900px]:grid-cols-1">
+        {/* LEFT COLUMN: Question Card, Timer & Navigation Controls */}
+        <div className="flex flex-col gap-5 bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
+          {/* Header Step Counter & Timer */}
+          <div className="flex items-center justify-between border-b border-border/60 pb-4">
+            <div className="flex items-center gap-2">
+              {currentDrillIndex > 0 && (
                 <button
-                  onClick={handleRestartAnswer}
-                  title="Clear & restart answer for this question"
-                  className="text-[13px] text-text3 hover:text-text bg-surface border border-border px-4 py-3 rounded-xl cursor-pointer transition-all"
+                  onClick={handlePreviousQuestion}
+                  className="text-[12px] text-accent hover:underline bg-surface border border-border px-3 py-1 rounded-full cursor-pointer transition-all font-medium"
                 >
-                  🔄 Restart
+                  ← Prev Q
                 </button>
               )}
-            </>
+              <span className="bg-accent/15 text-accent border border-accent/30 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider">
+                Question {currentDrillIndex + 1} of {totalQuestions}
+              </span>
+            </div>
+
+            {drillTimerSecs > 0 && (
+              <div className="flex items-center gap-2">
+                {timeRemaining <= 3 && timeRemaining > 0 && isRecording && (
+                  <span className="text-[18px] font-bold text-amber-400 animate-bounce">
+                    {timeRemaining}...
+                  </span>
+                )}
+                <div
+                  className={`font-mono text-[14px] px-3.5 py-1 rounded-full border transition-all ${
+                    timeRemaining <= 3 && timeRemaining > 0
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold animate-pulse'
+                      : timeRemaining === 0
+                      ? 'bg-red-500/20 border-red-500 text-red-400 font-bold'
+                      : 'bg-surface border-border text-text'
+                  }`}
+                >
+                  ⏱ {fmtTime(timeRemaining)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Time's Up Non-Stop Notification */}
+          {drillTimerSecs > 0 && timeRemaining === 0 && isRecording && (
+            <div className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-[13px] leading-[1.5]">
+              ⏱ <strong>Time's up for target pace!</strong> Keep speaking to finish your thought, or click <em>Next Question →</em>.
+            </div>
           )}
 
-          {/* Secondary Bottom Timer Indicator so you always see remaining/elapsed time */}
-          <div className="text-[12px] font-mono text-text3 bg-surface border border-border px-3 py-2 rounded-xl">
-            ⏱ {drillTimerSecs > 0 ? `${fmtTime(timeRemaining)} left` : `${fmtTime(elapsed)} elapsed`}
+          {/* Question Display Card */}
+          <div className="p-6 bg-surface2/60 border border-border rounded-xl">
+            <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
+              Current Practice Question
+            </div>
+            <h2 className="font-serif text-[24px] leading-[1.35] text-text font-normal">
+              "{currentQuestion}"
+            </h2>
+          </div>
+
+          {/* Action Buttons & Controls */}
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {!isRecording && !transcript ? (
+                <button
+                  onClick={handleStart}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-lg"
+                >
+                  🎙 Start Answer
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleToggleRecord}
+                    className={`flex-1 inline-flex items-center justify-center gap-2 border rounded-xl px-5 py-3 font-sans text-[13px] font-medium transition-all cursor-pointer ${
+                      isRecording
+                        ? 'bg-red-500/10 text-red-400 border-red-500/40 hover:bg-red-500/20'
+                        : 'bg-surface text-text border-border-md hover:border-border-hi'
+                    }`}
+                  >
+                    {isRecording ? '⏸ Pause' : '▶ Resume'}
+                  </button>
+
+                  {(transcript || elapsed > 0) && (
+                    <button
+                      onClick={handleRestartAnswer}
+                      title="Clear & restart answer for this question"
+                      className="text-[13px] text-text3 hover:text-text bg-surface border border-border p-3 rounded-xl cursor-pointer transition-all"
+                    >
+                      🔄 Restart
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                onClick={() => handleNextOrFinish(true)}
+                className="text-text3 text-[13px] font-light hover:text-text cursor-pointer bg-transparent border-none py-2"
+              >
+                Skip Question
+              </button>
+
+              <button
+                onClick={() => handleNextOrFinish(false)}
+                className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
+              >
+                {isLastQuestion ? 'Finish Drill & See Results →' : 'Next Question →'}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleNextOrFinish(true)}
-            className="text-text3 text-[13px] font-light hover:text-text cursor-pointer bg-transparent border-none px-3 py-2"
-          >
-            Skip Question
-          </button>
+        {/* RIGHT COLUMN: Live Spoken Answer & Streaming Box */}
+        <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[460px]">
+          <div>
+            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+              <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
+                <span>Spoken Answer (Q{currentDrillIndex + 1})</span>
+                {isRecording && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-[12px] font-mono text-text3">
+                {isRecording && <WaveForm />}
+                <span>Words: <strong className="text-text">{wordCount}</strong></span>
+                <span>·</span>
+                <span>Time: <strong className="text-text">{fmtTime(elapsed)}</strong></span>
+              </div>
+            </div>
 
-          <button
-            onClick={() => handleNextOrFinish(false)}
-            className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-7 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-lg"
-          >
-            {isLastQuestion ? 'Finish Drill & See Results →' : 'Next Question →'}
-          </button>
+            <div
+              ref={liveRef}
+              className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[340px] max-h-[420px] overflow-y-auto pr-2"
+            >
+              {transcript || interim ? (
+                <>
+                  <span className="text-text font-normal">{transcript}</span>
+                  <span className="text-text3"> {interim}</span>
+                </>
+              ) : (
+                <div className="h-[300px] flex flex-col items-center justify-center text-center text-text3 italic">
+                  <span className="text-[32px] mb-2 opacity-50">🎯</span>
+                  <span>Tap "Start Answer" and speak your answer to Question {currentDrillIndex + 1}.</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!hasSpeechSupport && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-[12px] mt-4">
+              ⚠️ Web Speech API requires Chrome or Edge browser.
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -101,13 +101,13 @@ export default function Compare() {
   }
 
   return (
-    <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-[72px] pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-12 pb-20 max-[768px]:px-5">
       <div className="mb-8">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">Progress</div>
-        <h2 className="font-serif text-[34px] leading-[1.15] font-normal mb-2.5 max-[680px]:text-[26px]">
-          How far have<br />you <em className="italic text-accent">come?</em>
+        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">Progress & Analytics</div>
+        <h2 className="font-serif text-[38px] leading-[1.15] font-normal mb-2 max-[680px]:text-[28px]">
+          How far have you <em className="italic text-accent">come?</em>
         </h2>
-        <p className="text-[13px] text-text2 mt-2.5">Pick two sessions and see what's changed.</p>
+        <p className="text-[14px] text-text2 leading-[1.6]">Pick two past practice sessions and analyze your speech growth side-by-side.</p>
       </div>
 
       {/* Category Filter Tabs */}
@@ -133,32 +133,40 @@ export default function Compare() {
 
       {/* Session picker */}
       {filteredSessions.length >= 2 ? (
-        <div className="grid grid-cols-[1fr_40px_1fr] gap-3 items-center mb-9">
-          <select
-            value={idA}
-            onChange={(e) => setIdA(e.target.value)}
-            className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none"
-          >
-            <option value="">Select session…</option>
-            {filteredSessions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
-              </option>
-            ))}
-          </select>
-          <div className="font-serif italic text-[20px] text-text3 text-center">vs</div>
-          <select
-            value={idB}
-            onChange={(e) => setIdB(e.target.value)}
-            className="bg-surface border border-border-md rounded-xl p-4 text-text text-[13px] font-sans cursor-pointer outline-none appearance-none"
-          >
-            <option value="">Select session…</option>
-            {filteredSessions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-[1fr_40px_1fr] gap-4 items-center mb-9 bg-surface border border-border-md rounded-2xl p-6 shadow-xl">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-text3 mb-2 font-medium">Earlier Session (Baseline)</div>
+            <select
+              value={idA}
+              onChange={(e) => setIdA(e.target.value)}
+              className="w-full bg-surface2 border border-border-md rounded-xl p-3.5 text-text text-[13px] font-sans cursor-pointer outline-none"
+            >
+              <option value="">Select session…</option>
+              {filteredSessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="font-serif italic text-[22px] text-accent text-center pt-5">vs</div>
+
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-text3 mb-2 font-medium">Recent Session (Target)</div>
+            <select
+              value={idB}
+              onChange={(e) => setIdB(e.target.value)}
+              className="w-full bg-surface2 border border-border-md rounded-xl p-3.5 text-text text-[13px] font-sans cursor-pointer outline-none"
+            >
+              <option value="">Select session…</option>
+              {filteredSessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {formatDate(s.date)} — {s.context} (Score: {s.metrics?.overall})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       ) : (
         <div className="p-6 bg-surface border border-border rounded-xl text-center text-[13px] text-text3 mb-8">
@@ -166,25 +174,25 @@ export default function Compare() {
         </div>
       )}
 
-      {/* Delta grid */}
+      {/* Delta grid & Session Insight */}
       {sessionA && sessionB && (
-        <>
-          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3.5">Metric comparison</div>
-          <div className="grid grid-cols-2 gap-2.5 mb-7 max-[680px]:grid-cols-1">
+        <div className="flex flex-col gap-6">
+          <div className="text-[10px] tracking-[0.18em] uppercase text-text3 font-medium">Metric comparison</div>
+          <div className="grid grid-cols-3 gap-3.5 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1">
             {METRIC_KEYS.map(({ key, label, invert }) => {
               const { valA, valB, change, cls } = getDelta(key, invert);
               const changeColor = cls === 'up' ? 'text-green' : cls === 'down' ? 'text-red' : 'text-text3';
               return (
-                <div key={key} className="bg-surface border border-border rounded-xl p-[18px_20px]">
-                  <div className="text-[10px] tracking-[0.12em] uppercase text-text3 mb-3.5">{label}</div>
+                <div key={key} className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+                  <div className="text-[10px] tracking-[0.12em] uppercase text-text3 mb-3 font-medium">{label}</div>
                   <div className="flex items-end justify-between">
                     <div className="text-center">
-                      <div className="font-serif text-[32px] italic leading-none text-text2">{valA}</div>
+                      <div className="font-serif text-[30px] italic leading-none text-text2">{valA}</div>
                       <div className="text-[10px] text-text3 mt-[3px]">{sessionA ? formatDate(sessionA.date) : ''}</div>
                     </div>
                     <div className="text-[20px] text-border-md pb-2">/</div>
                     <div className="text-center">
-                      <div className={`font-serif text-[32px] italic leading-none ${getValColor(key, valB, true)}`}>{valB}</div>
+                      <div className={`font-serif text-[30px] italic leading-none ${getValColor(key, valB, true)}`}>{valB}</div>
                       <div className={`text-[11px] font-medium mt-1 ${changeColor}`}>{change}</div>
                     </div>
                   </div>
@@ -194,13 +202,13 @@ export default function Compare() {
           </div>
 
           {/* Insight */}
-          <div className="p-[22px_26px] bg-surface border border-border-md border-l-2 border-l-accent rounded-r-[14px]">
-            <div className="text-[10px] tracking-[0.16em] uppercase text-text3 mb-2.5">Session insight</div>
-            <div className="text-[14px] text-text2 leading-[1.8] italic">
+          <div className="p-6 bg-surface border border-border-md border-l-4 border-l-accent rounded-r-2xl shadow-xl">
+            <div className="text-[10px] tracking-[0.16em] uppercase text-text3 mb-2 font-medium">AI Progress Insight</div>
+            <div className="text-[15px] text-text2 leading-[1.85] italic">
               {loading ? 'Generating insight…' : insight || 'Select two sessions to compare.'}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

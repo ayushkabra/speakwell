@@ -159,7 +159,7 @@ export default function DrillSetup() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[780px] mx-auto px-6 pt-12 pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-12 pb-20 max-[680px]:px-5">
       {/* Top Header & Cancel/Exit */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -172,13 +172,13 @@ export default function DrillSetup() {
 
       {/* Title */}
       <div className="mb-8">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">
+        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
           Question Drill Setup
         </div>
-        <h2 className="font-serif text-[36px] leading-[1.12] font-normal mb-2.5 max-[680px]:text-[28px]">
+        <h2 className="font-serif text-[40px] leading-[1.12] font-normal mb-2.5 max-[680px]:text-[28px]">
           Create your <em className="italic text-accent">Practice Session</em>
         </h2>
-        <p className="text-[14px] text-text2 leading-[1.6]">
+        <p className="text-[15px] text-text2 leading-[1.6]">
           Add questions individually, upload a document with interactive filtering, or pick a curated interview preset.
         </p>
       </div>
@@ -217,11 +217,11 @@ export default function DrillSetup() {
         </button>
       </div>
 
-      {/* TAB 1: ITEMIZED QUESTIONS (Question 1, Question 2, Question 3...) */}
+      {/* TAB 1: ITEMIZED QUESTIONS */}
       {activeTab === 'type' && (
         <div className="mb-9">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] tracking-[0.15em] uppercase text-text3">
+            <div className="text-[11px] tracking-[0.15em] uppercase text-text3 font-medium">
               Add your questions line by line
             </div>
             <button
@@ -236,7 +236,7 @@ export default function DrillSetup() {
             {questionItems.map((item, idx) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-2.5 px-4 bg-surface border border-border-md rounded-xl transition-all focus-within:border-accent-border"
+                className="flex items-center gap-3 p-3 px-4 bg-surface border border-border-md rounded-xl transition-all focus-within:border-accent-border shadow-sm"
               >
                 <span className="w-7 h-7 rounded-full bg-surface2 border border-border text-accent font-serif text-[13px] font-medium flex items-center justify-center shrink-0">
                   {idx + 1}
@@ -261,7 +261,7 @@ export default function DrillSetup() {
 
           <button
             onClick={handleAddQuestionField}
-            className="inline-flex items-center gap-2 text-[13px] text-accent bg-accent/10 border border-accent/20 rounded-xl px-4 py-2.5 cursor-pointer font-medium hover:bg-accent/20 transition-all"
+            className="inline-flex items-center gap-2 text-[13px] text-accent bg-accent/10 border border-accent/20 rounded-xl px-5 py-2.5 cursor-pointer font-medium hover:bg-accent/20 transition-all shadow-sm"
           >
             + Add Question {questionItems.length + 1}
           </button>
@@ -275,7 +275,7 @@ export default function DrillSetup() {
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className="w-full bg-surface border-2 border-dashed border-border-md rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 mb-6"
+            className="w-full bg-surface border-2 border-dashed border-border-md rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 mb-6 shadow-sm"
           >
             <input
               type="file"
@@ -284,20 +284,20 @@ export default function DrillSetup() {
               accept=".pdf,.txt,.md"
               className="hidden"
             />
-            <div className="text-[36px] mb-2">📄</div>
-            <div className="text-[15px] text-text font-medium mb-1">
+            <div className="text-[40px] mb-2">📄</div>
+            <div className="text-[16px] text-text font-medium mb-1">
               {fileName ? fileName : 'Upload PDF or Document'}
             </div>
-            <div className="text-[12px] text-text3 max-w-[400px] mx-auto">
+            <div className="text-[13px] text-text3 max-w-[440px] mx-auto">
               {isParsing
                 ? 'Parsing document and isolating questions...'
-                : 'Upload your document. We will filter out body paragraphs and isolate the questions for review.'}
+                : 'Upload your document. We will filter out body paragraphs and isolate questions for interactive review.'}
             </div>
           </div>
 
           {/* Interactive Question Filter List */}
           {extractedPdfQuestions.length > 0 && (
-            <div className="p-5 bg-surface border border-border-md rounded-2xl">
+            <div className="p-6 bg-surface border border-border-md rounded-2xl shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-[11px] uppercase tracking-wider text-accent font-semibold">
                   Extracted Questions ({extractedPdfQuestions.filter((q) => q.checked).length} selected)
@@ -305,11 +305,11 @@ export default function DrillSetup() {
                 <div className="text-[12px] text-text3">Uncheck or edit non-question lines</div>
               </div>
 
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {extractedPdfQuestions.map((qItem, idx) => (
+              <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+                {extractedPdfQuestions.map((qItem) => (
                   <div
                     key={qItem.id}
-                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
                       qItem.checked ? 'bg-surface2/60 border-border' : 'bg-surface/30 border-transparent opacity-50'
                     }`}
                   >
@@ -339,17 +339,17 @@ export default function DrillSetup() {
         </div>
       )}
 
-      {/* TAB 3: PRESET PACKS (WITH EASY CLEAR & EXIT) */}
+      {/* TAB 3: PRESET PACKS */}
       {activeTab === 'presets' && (
         <div className="mb-9">
           {selectedPreset ? (
-            <div className="p-6 bg-surface border border-accent rounded-2xl">
+            <div className="p-7 bg-surface border border-accent rounded-2xl shadow-xl">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[26px]">{selectedPreset.icon}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[28px]">{selectedPreset.icon}</span>
                   <div>
-                    <h3 className="font-serif text-[20px] text-text">{selectedPreset.title}</h3>
-                    <p className="text-[12px] text-text3">{selectedPreset.description}</p>
+                    <h3 className="font-serif text-[22px] text-text">{selectedPreset.title}</h3>
+                    <p className="text-[13px] text-text3">{selectedPreset.description}</p>
                   </div>
                 </div>
                 <button
@@ -360,7 +360,7 @@ export default function DrillSetup() {
                 </button>
               </div>
 
-              <div className="text-[11px] text-text3 uppercase tracking-wider mb-2">
+              <div className="text-[11px] text-text3 uppercase tracking-wider mb-2 font-medium">
                 Included Questions ({selectedPreset.questions.length}):
               </div>
               <ol className="list-decimal list-inside text-[14px] text-text2 space-y-2 pl-1">
@@ -372,21 +372,21 @@ export default function DrillSetup() {
               </ol>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5 max-[600px]:grid-cols-1">
+            <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
               {PRESET_PACKS.map((pack) => (
                 <div
                   key={pack.id}
                   onClick={() => handleSelectPreset(pack)}
-                  className="p-5 rounded-2xl border bg-surface border-border hover:border-accent-border hover:bg-surface2 cursor-pointer transition-all duration-200 group"
+                  className="p-6 rounded-2xl border bg-surface border-border hover:border-accent-border hover:bg-surface2 cursor-pointer transition-all duration-200 group shadow-md"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[24px]">{pack.icon}</span>
+                    <span className="text-[26px]">{pack.icon}</span>
                     <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                       Select →
                     </span>
                   </div>
-                  <div className="text-[15px] font-medium text-text mb-1">{pack.title}</div>
-                  <div className="text-[12px] text-text3 mb-3 leading-[1.5]">{pack.description}</div>
+                  <div className="text-[16px] font-medium text-text mb-1">{pack.title}</div>
+                  <div className="text-[13px] text-text3 mb-3 leading-[1.5]">{pack.description}</div>
                   <div className="text-[11px] text-accent font-medium">
                     {pack.questions.length} Questions
                   </div>
@@ -398,8 +398,8 @@ export default function DrillSetup() {
       )}
 
       {/* Response Timer Configuration */}
-      <div className="mb-9 p-5 bg-surface border border-border rounded-xl">
-        <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3">
+      <div className="mb-9 p-6 bg-surface border border-border rounded-xl shadow-sm">
+        <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-3 font-medium">
           Response Timer per Question
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -409,7 +409,7 @@ export default function DrillSetup() {
               onClick={() => setSelectedTimer(opt.value)}
               className={`px-4 py-2 rounded-lg text-[13px] font-sans transition-all cursor-pointer border ${
                 selectedTimer === opt.value
-                  ? 'bg-accent text-[#0e0e0d] border-accent font-medium'
+                  ? 'bg-accent text-[#0e0e0d] border-accent font-medium shadow-md'
                   : 'bg-transparent text-text2 border-border-md hover:border-border-hi hover:text-text font-light'
               }`}
             >
@@ -424,9 +424,9 @@ export default function DrillSetup() {
         <button
           onClick={handleStartDrill}
           disabled={activeQuestions.length === 0}
-          className={`inline-flex items-center gap-2 rounded-[10px] px-8 py-3.5 font-sans text-[14px] font-medium transition-all duration-[180ms] ${
+          className={`inline-flex items-center gap-2 rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium transition-all duration-[180ms] ${
             activeQuestions.length > 0
-              ? 'bg-accent text-[#0e0e0d] cursor-pointer hover:opacity-86 active:scale-[0.96]'
+              ? 'bg-accent text-[#0e0e0d] cursor-pointer hover:opacity-90 active:scale-[0.96] shadow-lg'
               : 'bg-surface2 text-text3 cursor-not-allowed border border-border'
           }`}
         >
@@ -444,7 +444,7 @@ export default function DrillSetup() {
       {/* Bulk Paste Modal */}
       {showBulkPasteModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface border border-border-md rounded-2xl w-full max-w-[540px] p-6 animate-fade-up">
+          <div className="bg-surface border border-border-md rounded-2xl w-full max-w-[540px] p-6 animate-fade-up shadow-2xl">
             <h3 className="font-serif text-[22px] text-text mb-2">Bulk Paste Questions</h3>
             <p className="text-[13px] text-text3 mb-4">
               Paste questions below (one per line). We will convert each line into an individual itemized input field.
