@@ -59,20 +59,28 @@ export default function Context() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-12 pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-10 pb-20 max-[680px]:px-5">
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-[13px] text-text3 hover:text-text cursor-pointer bg-transparent border-none p-0 font-light transition-all"
+        >
+          ← Exit & Back to Home
+        </button>
+      </div>
+
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">
-            Free Talk Mode
-          </div>
-          <h2 className="font-serif text-[40px] leading-[1.12] font-normal mb-2 max-[680px]:text-[28px]">
-            What are you <em className="italic text-accent">preparing for?</em>
-          </h2>
-          <p className="text-[15px] text-text2 leading-[1.6]">
-            Choose a context, type your own topic, or spin a random prompt to test your impromptu speaking skills.
-          </p>
+      <div className="mb-8">
+        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
+          Free Talk Mode
         </div>
+        <h2 className="font-serif text-[40px] leading-[1.12] font-normal mb-2 max-[680px]:text-[28px]">
+          What are you <em className="italic text-accent">preparing for?</em>
+        </h2>
+        <p className="text-[15px] text-text2 leading-[1.6]">
+          Choose a context, type your own topic, or spin a random prompt to test your impromptu speaking skills.
+        </p>
       </div>
 
       {/* Mode Sub-Tabs */}
@@ -198,7 +206,7 @@ export default function Context() {
               className={`px-4 py-2 rounded-lg text-[13px] font-sans transition-all cursor-pointer border ${
                 selectedTimer === p.secs
                   ? 'bg-accent text-[#0e0e0d] border-accent font-medium shadow-md'
-                  : 'bg-transparent text-text2 border-border-md hover:border-border-hi hover:text-text font-light'
+                  : 'bg-transparent text-[#e6e6e0] border-border-md hover:border-border-hi hover:text-text font-light'
               }`}
             >
               {p.label}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
 import { compareInsight } from '../lib/apiClient';
 
@@ -17,6 +18,7 @@ const METRIC_KEYS = [
 ];
 
 export default function Compare() {
+  const navigate = useNavigate();
   const sessions = useSessionStore((s) => s.sessions);
   const [filter, setFilter] = useState('all'); // 'all' | 'free' | 'drill'
   const [idA, setIdA] = useState('');
@@ -96,14 +98,30 @@ export default function Compare() {
           How far have<br />you <em className="italic text-accent">come?</em>
         </h2>
         <p className="text-[13px] text-text2 mt-2.5 mb-8">You need at least 2 sessions to compare. Keep practicing!</p>
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] rounded-xl px-6 py-3 font-sans text-[13px] font-medium"
+        >
+          ← Back to Home
+        </button>
       </div>
     );
   }
 
   return (
     <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-10 pb-20 max-[768px]:px-4">
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-[13px] text-text3 hover:text-text cursor-pointer bg-transparent border-none p-0 font-light transition-all"
+        >
+          ← Back to Home
+        </button>
+      </div>
+
       <div className="mb-8">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">Progress & Analytics</div>
+        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">Progress & Analytics</div>
         <h2 className="font-serif text-[38px] leading-[1.15] font-normal mb-2 max-[680px]:text-[26px]">
           How far have you <em className="italic text-accent">come?</em>
         </h2>

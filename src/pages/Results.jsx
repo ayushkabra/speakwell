@@ -42,8 +42,9 @@ export default function Results() {
 
   const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
+  const isSlide = sessionType === 'slide';
   const isLadder = sessionType === 'ladder';
-  const isDrill = isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
+  const isDrill = isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   const handleCopyPolished = () => {
     if (!polishedScript) return;
@@ -54,7 +55,7 @@ export default function Results() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-10 pb-20 max-[768px]:px-5 relative">
+    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-20 max-[768px]:px-5 relative">
       {/* Copied Toast Notification */}
       {copied && (
         <div className="fixed bottom-6 right-6 bg-accent text-[#0e0e0d] font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 text-[13px] animate-fade-up flex items-center gap-2">
@@ -62,23 +63,33 @@ export default function Results() {
         </div>
       )}
 
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-[13px] text-text3 hover:text-text cursor-pointer bg-transparent border-none p-0 font-light transition-all"
+        >
+          ← Back to Home
+        </button>
+      </div>
+
       {/* Header */}
       <div className="mb-8 border-b border-border/60 pb-4 flex items-center justify-between">
         <div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1 flex items-center gap-2">
-            {isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
+          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1 flex items-center gap-2 font-medium">
+            {isSlide ? '🖼️ Presentation Slide Deck Results' : isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
           </div>
           <h2 className="font-serif text-[32px] text-text font-normal">
-            {isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+            {isSlide ? 'Slide Pitch Performance' : isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
           </h2>
         </div>
 
         <div className="flex gap-3">
           <button
-            onClick={() => navigate(isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
+            onClick={() => navigate(isSlide ? '/slide-setup' : isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
             className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
           >
-            {isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
+            {isSlide ? 'Practice another Slide Deck →' : isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
           </button>
         </div>
       </div>
@@ -104,13 +115,13 @@ export default function Results() {
           </button>
         </div>
 
-        {/* RIGHT COLUMN: Question Breakdown & Transcript / Executive Polished Script */}
+        {/* RIGHT COLUMN: Question/Slide Breakdown & Transcript / Executive Polished Script */}
         <div className="flex flex-col gap-6">
-          {/* Question / Level Breakdown Cards */}
+          {/* Question / Slide Breakdown Cards */}
           {isDrill && drillAnswers && drillAnswers.length > 0 && (
             <div className="p-6 bg-surface border border-border-md rounded-2xl shadow-xl">
               <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 font-medium flex items-center justify-between">
-                <span>{isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
+                <span>{isSlide ? `Slide-by-Slide Pitch Breakdown (${drillAnswers.length} Slides)` : isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
               </div>
               <div className="flex flex-col gap-3">
                 {drillAnswers.map((ans, idx) => (
@@ -123,11 +134,11 @@ export default function Results() {
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface2"
                     >
                       <div className="flex items-center gap-3 truncate max-w-[70%]">
-                        <span className="w-7 h-7 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium shrink-0">
-                          {isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
+                        <span className="w-8 h-8 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium shrink-0">
+                          {isSlide ? `S${ans.pageNum || idx + 1}` : isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
                         </span>
                         <div className="font-sans text-[14px] text-text font-medium truncate">
-                          {ans.questionText}
+                          {ans.title || ans.questionText}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -143,7 +154,7 @@ export default function Results() {
 
                     {expandedQuestion === idx && (
                       <div className="p-4 pt-2 border-t border-border bg-surface/80">
-                        <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Your Answer</div>
+                        <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Spoken Pitch</div>
                         <div className="text-[14px] text-text2 leading-[1.7] mb-3 p-3 bg-surface border border-border rounded-lg">
                           {ans.transcript}
                         </div>

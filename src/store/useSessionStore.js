@@ -20,7 +20,7 @@ const useSessionStore = create((set, get) => ({
   // All saved sessions
   sessions: loadSessions(),
 
-  // Current session type: 'free' | 'drill' | 'ladder'
+  // Current session type: 'free' | 'drill' | 'ladder' | 'slide'
   sessionType: 'free',
 
   // Free talk state
@@ -42,6 +42,12 @@ const useSessionStore = create((set, get) => ({
   ladderDomain: '',
   ladderLevel: 1,
   ladderAnswers: [],
+
+  // Slide Deck state
+  slideDeck: [],
+  slideTimerSecs: 60,
+  currentSlideIndex: 0,
+  slideAnswers: [],
 
   // Current results (after recording)
   currentSession: null,
@@ -111,6 +117,32 @@ const useSessionStore = create((set, get) => ({
       ladderDomain: '',
       ladderLevel: 1,
       ladderAnswers: [],
+    }),
+
+  // Slide Deck Actions
+  setSlideSetup: ({ slides, timerSecs }) =>
+    set({
+      sessionType: 'slide',
+      slideDeck: slides,
+      slideTimerSecs: timerSecs ?? 60,
+      currentSlideIndex: 0,
+      slideAnswers: [],
+    }),
+
+  addSlideAnswer: (answer) =>
+    set((state) => {
+      const filtered = state.slideAnswers.filter((a) => a.slideIndex !== answer.slideIndex);
+      const updated = [...filtered, answer].sort((a, b) => a.slideIndex - b.slideIndex);
+      return { slideAnswers: updated };
+    }),
+
+  setCurrentSlideIndex: (idx) => set({ currentSlideIndex: idx }),
+
+  resetSlideDeck: () =>
+    set({
+      slideDeck: [],
+      currentSlideIndex: 0,
+      slideAnswers: [],
     }),
 
   setCurrentSession: (session) => set({ currentSession: session }),

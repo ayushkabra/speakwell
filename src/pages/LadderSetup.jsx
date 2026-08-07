@@ -27,10 +27,20 @@ export default function LadderSetup() {
   };
 
   return (
-    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-12 pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1080px] mx-auto px-8 pt-10 pb-20 max-[680px]:px-5">
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-[13px] text-text3 hover:text-text cursor-pointer bg-transparent border-none p-0 font-light transition-all"
+        >
+          ← Exit & Back to Home
+        </button>
+      </div>
+
       {/* Header */}
       <div className="mb-8">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 flex items-center gap-2">
+        <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 flex items-center gap-2 font-medium">
           <span>🪜 Topic Ladder Mode</span>
           <span className="text-[10px] bg-accent/20 text-accent font-semibold px-2.5 py-0.5 rounded-full">Endless Deep-Dive</span>
         </div>
@@ -110,7 +120,7 @@ export default function LadderSetup() {
         </div>
       </div>
 
-      {/* Start Button (Smooth Scroll Target) */}
+      {/* Start Button */}
       <div ref={actionSectionRef} className="flex items-center gap-3 pt-2">
         <button
           onClick={() => handleStartLadder(selectedDomain)}

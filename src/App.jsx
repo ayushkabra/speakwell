@@ -8,6 +8,8 @@ import DrillSetup from './pages/DrillSetup';
 import DrillRecord from './pages/DrillRecord';
 import LadderSetup from './pages/LadderSetup';
 import LadderRecord from './pages/LadderRecord';
+import SlideSetup from './pages/SlideSetup';
+import SlideRecord from './pages/SlideRecord';
 import Processing from './pages/Processing';
 import Results from './pages/Results';
 import Compare from './pages/Compare';
@@ -25,6 +27,8 @@ export default function App() {
           <Route path="/drill-record" element={<DrillRecord />} />
           <Route path="/ladder-setup" element={<LadderSetup />} />
           <Route path="/ladder-record" element={<LadderRecord />} />
+          <Route path="/slide-setup" element={<SlideSetup />} />
+          <Route path="/slide-record" element={<SlideRecord />} />
           <Route path="/processing" element={<Processing />} />
           <Route path="/results" element={<Results />} />
           <Route path="/compare" element={<Compare />} />

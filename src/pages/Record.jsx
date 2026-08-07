@@ -207,6 +207,16 @@ export default function Record() {
 
   return (
     <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-6 max-[768px]:px-4 pt-6 max-[768px]:pt-4 pb-16">
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => navigate('/context')}
+          className="inline-flex items-center gap-1.5 text-[13px] text-text3 hover:text-text cursor-pointer bg-transparent border-none p-0 font-light transition-all"
+        >
+          ← Exit & Back to Setup
+        </button>
+      </div>
+
       {/* Speech Notice */}
       {showNotice && (
         <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-4 py-2 rounded-lg mb-4 text-center">

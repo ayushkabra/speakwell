@@ -35,7 +35,7 @@ export default function Home() {
             <em className="italic text-accent">Sound sharp.</em>
           </h1>
           <p className="text-[15px] text-text2 leading-[1.8] max-w-[560px]">
-            Practice open speech, drill custom question lists, or step up endless topic ladders. We listen, analyze, and hand you back a polished version of yourself.
+            Practice open speech, drill question lists, step up topic ladders, or rehearse slide decks. We listen, analyze, and hand you back a polished version of yourself.
           </p>
         </div>
 
@@ -49,74 +49,97 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Practice Mode Cards (Spacious 3-Column Grid) */}
-      <div className="grid grid-cols-3 gap-5 max-[900px]:grid-cols-1 mb-12">
+      {/* Practice Mode Cards (4-Column Grid) */}
+      <div className="grid grid-cols-4 gap-4 max-[1024px]:grid-cols-2 max-[640px]:grid-cols-1 mb-12">
         <div
           onClick={() => navigate('/context')}
-          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[28px]">🎙️</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[26px]">🎙️</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Start →
               </span>
             </div>
-            <div className="font-sans text-[18px] font-medium text-text mb-1.5">
+            <div className="font-sans text-[16px] font-medium text-text mb-1">
               Free Talk Mode
             </div>
-            <div className="text-[13px] text-text3 leading-[1.6]">
-              Speak freely on any topic or prompt without artificial limits or rules.
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Speak freely on any topic without artificial limits or rules.
             </div>
           </div>
-          <div className="mt-6 text-[11px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
             Open Speech Practice
           </div>
         </div>
 
         <div
           onClick={() => navigate('/drill-setup')}
-          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[28px]">🎯</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[26px]">🎯</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Setup →
               </span>
             </div>
-            <div className="font-sans text-[18px] font-medium text-text mb-1.5 flex items-center gap-2">
+            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
               Question Drills
             </div>
-            <div className="text-[13px] text-text3 leading-[1.6]">
-              Upload PDF or paste a question list. Practice answering item-by-item with timers.
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Upload PDF or paste question list. Practice answering item-by-item with timers.
             </div>
           </div>
-          <div className="mt-6 text-[11px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
             Itemized Q&A Practice
           </div>
         </div>
 
         <div
           onClick={() => navigate('/ladder-setup')}
-          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[28px]">🪜</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[26px]">🪜</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Explore →
               </span>
             </div>
-            <div className="font-sans text-[18px] font-medium text-text mb-1.5 flex items-center gap-2">
-              Topic Ladders <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+              Topic Ladders
             </div>
-            <div className="text-[13px] text-text3 leading-[1.6]">
-              Pick a domain and answer questions that get endlessly deeper, tougher & more complex.
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Pick a domain and answer questions that get endlessly deeper & tougher.
             </div>
           </div>
-          <div className="mt-6 text-[11px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
             Progressive Deep-Dive
+          </div>
+        </div>
+
+        <div
+          onClick={() => navigate('/slide-setup')}
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[26px]">🖼️</span>
+              <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
+                Upload →
+              </span>
+            </div>
+            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+              Slide Decks <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            </div>
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Upload presentation PDF and rehearse pitch audio slide-by-slide.
+            </div>
+          </div>
+          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+            Slide Teleprompter
           </div>
         </div>
       </div>
@@ -143,7 +166,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Recent Sessions (2-Column Desktop Grid) */}
+      {/* Recent Sessions */}
       {sessions.length > 0 && (
         <>
           <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 font-medium">
@@ -158,11 +181,11 @@ export default function Home() {
               >
                 <div className="flex flex-col gap-[3px] truncate max-w-[80%]">
                   <div className="text-[14px] font-medium text-text flex items-center gap-2 truncate">
-                    <span>{s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
+                    <span>{s.sessionType === 'slide' ? '🖼️' : s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
                     <span className="truncate">{s.context || 'Free Talk'}</span>
                   </div>
                   <div className="text-[12px] text-text3">
-                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Levels/Qs` : s.language || 'Auto'}
+                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Slides/Qs` : s.language || 'Auto'}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -180,7 +203,7 @@ export default function Home() {
       {sessions.length === 0 && (
         <div className="text-center py-16 text-text3 text-[14px]">
           <p className="mb-2">No sessions yet.</p>
-          <p>Choose "Free Talk", "Question Drills", or "Topic Ladders" to start practicing.</p>
+          <p>Choose "Free Talk", "Question Drills", "Topic Ladders", or "Slide Decks" to start practicing.</p>
         </div>
       )}
     </div>
