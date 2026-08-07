@@ -206,32 +206,32 @@ export default function Record() {
   const isWarning = timerSecs > 0 && elapsed >= timerSecs * 0.8 && elapsed < timerSecs;
 
   return (
-    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-16 max-[768px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-6 max-[768px]:px-4 pt-6 max-[768px]:pt-4 pb-16">
       {/* Speech Notice */}
       {showNotice && (
-        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-[18px] py-2 rounded-lg mb-6 text-center">
+        <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-4 py-2 rounded-lg mb-4 text-center">
           {showNotice}
         </div>
       )}
 
       {/* 2-Column Split Dashboard Layout */}
-      <div className="grid grid-cols-[44%_56%] gap-8 items-start max-[900px]:grid-cols-1">
+      <div className="grid grid-cols-[44%_56%] gap-6 max-[900px]:grid-cols-1 items-start">
         {/* LEFT COLUMN: Topic, Timer & Recording Controls */}
-        <div className="flex flex-col items-center text-center bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
+        <div className="flex flex-col items-center text-center bg-surface border border-border-md rounded-2xl p-6 max-[768px]:p-5 shadow-xl">
           {/* Active Topic Banner */}
-          <div className="w-full mb-6 p-4 bg-surface2/60 border border-border rounded-xl">
+          <div className="w-full mb-5 p-4 bg-surface2/60 border border-border rounded-xl">
             <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1 flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
               Active Topic
             </div>
-            <h2 className="font-serif text-[20px] text-text font-normal leading-[1.35]">
+            <h2 className="font-serif text-[18px] sm:text-[20px] text-text font-normal leading-[1.35]">
               "{activeTopicDisplay}"
             </h2>
           </div>
 
           {/* Timer Presets */}
           {!isRecording && (
-            <div className="flex gap-2 mb-6 justify-center flex-wrap">
+            <div className="flex gap-2 mb-5 justify-center flex-wrap">
               {TIMER_PRESETS.map((p, i) => (
                 <button
                   key={p.label}
@@ -254,7 +254,7 @@ export default function Record() {
           {/* Big Display Timer */}
           <div
             onClick={() => setTimerHidden(!timerHidden)}
-            className={`font-serif text-[76px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
+            className={`font-serif text-[68px] sm:text-[76px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
               isWarning ? 'text-orange animate-pulse' : 'text-text'
             } ${timerHidden ? 'opacity-[0.08]' : ''}`}
           >
@@ -262,18 +262,18 @@ export default function Record() {
           </div>
           <div
             onClick={() => setTimerHidden(!timerHidden)}
-            className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-6"
+            className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-5"
           >
             tap to {timerHidden ? 'show' : 'hide'} timer
           </div>
 
           {/* Audio Waveform */}
-          <div className="mb-6 w-full flex flex-col items-center">
+          <div className="mb-5 w-full flex flex-col items-center">
             <WaveForm isActive={isRecording && !isPaused} />
           </div>
 
           {/* Mic & Control Actions */}
-          <div className="flex flex-col items-center gap-4 w-full">
+          <div className="flex flex-col items-center gap-3 w-full">
             {!isRecording ? (
               <button
                 onClick={handleStart}
@@ -289,18 +289,18 @@ export default function Record() {
                 </svg>
               </button>
             ) : (
-              <div className="flex items-center justify-center gap-3 flex-wrap w-full">
+              <div className="flex items-center justify-center gap-2.5 flex-wrap w-full">
                 {isPaused ? (
                   <button
                     onClick={handleResume}
-                    className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
+                    className="inline-flex items-center justify-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md flex-1 min-w-[120px]"
                   >
                     ▶ Resume
                   </button>
                 ) : (
                   <button
                     onClick={handlePause}
-                    className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-amber-500/25 active:scale-95"
+                    className="inline-flex items-center justify-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-amber-500/25 active:scale-95 flex-1 min-w-[110px]"
                   >
                     ⏸ Pause
                   </button>
@@ -308,7 +308,7 @@ export default function Record() {
 
                 <button
                   onClick={handleStop}
-                  className="inline-flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95 shadow-md"
+                  className="inline-flex items-center justify-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 rounded-xl px-5 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:bg-red-500/30 active:scale-95 shadow-md flex-1 min-w-[140px]"
                 >
                   ⏹ Finish & Analyze →
                 </button>
@@ -334,16 +334,16 @@ export default function Record() {
         </div>
 
         {/* RIGHT COLUMN: Live Spoken Transcript & Streaming Box */}
-        <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[460px]">
+        <div className="bg-surface border border-border-md rounded-2xl p-6 max-[768px]:p-5 shadow-xl flex flex-col justify-between min-h-[360px]">
           <div>
-            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+            <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-3">
               <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
                 <span>Live Spoken Transcript</span>
                 {isRecording && (
                   <span className="w-2 h-2 rounded-full bg-green animate-ping inline-block" />
                 )}
               </div>
-              <div className="flex items-center gap-3 text-[12px] font-mono text-text3">
+              <div className="flex items-center gap-2.5 text-[12px] font-mono text-text3">
                 <span>Words: <strong className="text-text">{wordCount}</strong></span>
                 <span>·</span>
                 <span>Time: <strong className="text-text">{fmt(elapsed)}</strong></span>
@@ -352,7 +352,7 @@ export default function Record() {
 
             <div
               ref={liveRef}
-              className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[340px] max-h-[420px] overflow-y-auto pr-2"
+              className="font-sans text-[15px] sm:text-[16px] leading-[1.85] text-text2 italic text-left min-h-[220px] max-h-[360px] overflow-y-auto pr-1"
             >
               {finalText || interimText ? (
                 <>
@@ -360,15 +360,15 @@ export default function Record() {
                   <span className="text-text3"> {interimText}</span>
                 </>
               ) : (
-                <div className="h-[300px] flex flex-col items-center justify-center text-center text-text3 italic">
-                  <span className="text-[32px] mb-2 opacity-50">🎙️</span>
+                <div className="h-[200px] flex flex-col items-center justify-center text-center text-text3 italic">
+                  <span className="text-[28px] mb-2 opacity-50">🎙️</span>
                   <span>Your live spoken words will stream here in real-time as you talk.</span>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-border/40 text-[12px] text-text3 flex items-center justify-between">
+          <div className="mt-3 pt-3 border-t border-border/40 text-[11px] sm:text-[12px] text-text3 flex items-center justify-between">
             <span>Automatic filler word detection active</span>
             <span>English / Hindi Auto-detected</span>
           </div>

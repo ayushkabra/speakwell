@@ -90,9 +90,9 @@ export default function Compare() {
 
   if (sessions.length < 2) {
     return (
-      <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-[72px] pb-20 text-center">
+      <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 pt-[72px] pb-20 text-center max-[680px]:px-4">
         <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">Progress</div>
-        <h2 className="font-serif text-[34px] leading-[1.15] font-normal mb-4">
+        <h2 className="font-serif text-[34px] leading-[1.15] font-normal mb-4 max-[680px]:text-[26px]">
           How far have<br />you <em className="italic text-accent">come?</em>
         </h2>
         <p className="text-[13px] text-text2 mt-2.5 mb-8">You need at least 2 sessions to compare. Keep practicing!</p>
@@ -101,17 +101,17 @@ export default function Compare() {
   }
 
   return (
-    <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-12 pb-20 max-[768px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-10 pb-20 max-[768px]:px-4">
       <div className="mb-8">
         <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2">Progress & Analytics</div>
-        <h2 className="font-serif text-[38px] leading-[1.15] font-normal mb-2 max-[680px]:text-[28px]">
+        <h2 className="font-serif text-[38px] leading-[1.15] font-normal mb-2 max-[680px]:text-[26px]">
           How far have you <em className="italic text-accent">come?</em>
         </h2>
         <p className="text-[14px] text-text2 leading-[1.6]">Pick two past practice sessions and analyze your speech growth side-by-side.</p>
       </div>
 
       {/* Category Filter Tabs */}
-      <div className="flex border-b border-b-border mb-6">
+      <div className="flex border-b border-b-border mb-6 overflow-x-auto no-scrollbar">
         {[
           { id: 'all', label: 'All Sessions' },
           { id: 'free', label: '🎙 Free Talk Only' },
@@ -120,7 +120,7 @@ export default function Compare() {
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id)}
-            className={`pb-3 px-4 font-sans text-[13px] font-medium transition-all cursor-pointer bg-transparent border-b-2 ${
+            className={`pb-3 px-4 font-sans text-[13px] font-medium transition-all cursor-pointer bg-transparent border-b-2 shrink-0 ${
               filter === tab.id
                 ? 'border-accent text-accent'
                 : 'border-transparent text-text3 hover:text-text2'
@@ -131,9 +131,9 @@ export default function Compare() {
         ))}
       </div>
 
-      {/* Session picker */}
+      {/* Session picker (Responsive for Mobile) */}
       {filteredSessions.length >= 2 ? (
-        <div className="grid grid-cols-[1fr_40px_1fr] gap-4 items-center mb-9 bg-surface border border-border-md rounded-2xl p-6 shadow-xl">
+        <div className="grid grid-cols-[1fr_40px_1fr] max-[640px]:grid-cols-1 gap-4 items-center mb-9 bg-surface border border-border-md rounded-2xl p-6 max-[640px]:p-4 shadow-xl">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text3 mb-2 font-medium">Earlier Session (Baseline)</div>
             <select
@@ -150,7 +150,7 @@ export default function Compare() {
             </select>
           </div>
 
-          <div className="font-serif italic text-[22px] text-accent text-center pt-5">vs</div>
+          <div className="font-serif italic text-[20px] text-accent text-center pt-2 max-[640px]:pt-0">vs</div>
 
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text3 mb-2 font-medium">Recent Session (Target)</div>
@@ -202,9 +202,9 @@ export default function Compare() {
           </div>
 
           {/* Insight */}
-          <div className="p-6 bg-surface border border-border-md border-l-4 border-l-accent rounded-r-2xl shadow-xl">
+          <div className="p-6 max-[640px]:p-4 bg-surface border border-border-md border-l-4 border-l-accent rounded-r-2xl shadow-xl">
             <div className="text-[10px] tracking-[0.16em] uppercase text-text3 mb-2 font-medium">AI Progress Insight</div>
-            <div className="text-[15px] text-text2 leading-[1.85] italic">
+            <div className="text-[14px] sm:text-[15px] text-text2 leading-[1.85] italic">
               {loading ? 'Generating insight…' : insight || 'Select two sessions to compare.'}
             </div>
           </div>

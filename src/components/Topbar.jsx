@@ -11,22 +11,22 @@ export default function Topbar() {
   );
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-[60px] border-b border-b-border/50 bg-[rgba(14,14,13,0.92)] backdrop-blur-[16px] z-50 flex items-center justify-between px-6 max-[640px]:px-4">
+    <nav className="fixed top-0 left-0 right-0 h-[60px] border-b border-b-border/50 bg-[rgba(14,14,13,0.95)] backdrop-blur-[16px] z-50 flex items-center justify-between px-6 max-[768px]:px-3 max-[768px]:gap-2">
       {/* Brand Logo */}
       <NavLink
         to="/"
-        className="font-serif italic text-[22px] text-accent tracking-[-0.01em] cursor-pointer no-underline flex items-center gap-1.5"
+        className="font-serif italic text-[20px] sm:text-[22px] text-accent tracking-[-0.01em] cursor-pointer no-underline flex items-center gap-1 shrink-0"
       >
         speakwell<span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
       </NavLink>
 
-      {/* Navigation Links (Desktop & Tablet) */}
-      <div className="flex items-center gap-1 max-[640px]:gap-0.5">
+      {/* Navigation Links (Scrollable & Responsive on Mobile) */}
+      <div className="flex items-center gap-1 max-[768px]:gap-0.5 overflow-x-auto no-scrollbar py-1 px-1">
         <NavLink
           to="/"
           end
           className={({ isActive }) =>
-            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light ${
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 ${
               isActive
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
@@ -39,7 +39,7 @@ export default function Topbar() {
         <NavLink
           to="/context"
           className={({ isActive }) =>
-            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light ${
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 ${
               isActive || (location.pathname === '/record' && sessionType === 'free')
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
@@ -52,33 +52,33 @@ export default function Topbar() {
         <NavLink
           to="/drill-setup"
           className={({ isActive }) =>
-            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light flex items-center gap-1 ${
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 flex items-center gap-1 ${
               isActive || location.pathname === '/drill-record' || (location.pathname === '/record' && sessionType === 'drill')
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
             }`
           }
         >
-          Question Drills 🎯
+          <span className="hidden sm:inline">Question </span>Drills 🎯
         </NavLink>
 
         <NavLink
           to="/ladder-setup"
           className={({ isActive }) =>
-            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light flex items-center gap-1 ${
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 flex items-center gap-1 ${
               isActive || location.pathname === '/ladder-record' || (location.pathname === '/record' && sessionType === 'ladder')
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
             }`
           }
         >
-          Topic Ladders 🪜
+          <span className="hidden sm:inline">Topic </span>Ladders 🪜
         </NavLink>
 
         <NavLink
           to="/compare"
           className={({ isActive }) =>
-            `text-[13px] px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light max-[640px]:hidden ${
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 ${
               isActive
                 ? 'text-accent bg-accent-dim font-medium'
                 : 'text-text2 hover:text-text hover:bg-surface2'
@@ -89,8 +89,8 @@ export default function Topbar() {
         </NavLink>
       </div>
 
-      {/* Active Session Context Badge */}
-      <div className="flex items-center gap-2">
+      {/* Active Session Context Badge (Hidden on small mobile screens to prevent overlap) */}
+      <div className="hidden lg:flex items-center gap-2 shrink-0">
         {showBadge && (
           <div className="text-[11px] bg-accent-dim border border-accent-border text-accent px-3 py-1 rounded-full tracking-[0.02em] font-medium max-w-[140px] truncate">
             {selectedContext || (sessionType === 'ladder' ? 'Topic Ladder' : sessionType === 'drill' ? 'Question Drill' : 'Free Talk')}
