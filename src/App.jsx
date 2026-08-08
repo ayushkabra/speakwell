@@ -10,6 +10,8 @@ import LadderSetup from './pages/LadderSetup';
 import LadderRecord from './pages/LadderRecord';
 import SlideSetup from './pages/SlideSetup';
 import SlideRecord from './pages/SlideRecord';
+import FrameworkSetup from './pages/FrameworkSetup';
+import FrameworkRecord from './pages/FrameworkRecord';
 import Processing from './pages/Processing';
 import Results from './pages/Results';
 import Compare from './pages/Compare';
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/ladder-record" element={<LadderRecord />} />
           <Route path="/slide-setup" element={<SlideSetup />} />
           <Route path="/slide-record" element={<SlideRecord />} />
+          <Route path="/framework-setup" element={<FrameworkSetup />} />
+          <Route path="/framework-record" element={<FrameworkRecord />} />
           <Route path="/processing" element={<Processing />} />
           <Route path="/results" element={<Results />} />
           <Route path="/compare" element={<Compare />} />

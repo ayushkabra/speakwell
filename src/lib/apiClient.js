@@ -20,7 +20,12 @@ export async function polishTranscript(transcript, context) {
 
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    return data.polished;
+
+    return {
+      polished: data.polished || transcript,
+      structuralMapping: data.structuralMapping || null,
+      strongestPoint: data.strongestPoint || null,
+    };
   } catch (err) {
     console.error('Polish API error:', err);
     // Fallback filler removal & structure formatting
@@ -33,10 +38,16 @@ export async function polishTranscript(transcript, context) {
     fillers.forEach((p) => { pol = pol.replace(p, ''); });
     pol = pol.replace(/\s{2,}/g, ' ').trim();
 
-    if (pol.includes('Q1') || pol.includes('Q2')) {
-      return pol.replace(/(Q\d+ \([^)]+\):)/g, '\n\n**$1**\n• ');
-    }
-    return pol;
+    return {
+      polished: pol,
+      structuralMapping: {
+        point: 'Stated main idea clearly in your authentic voice.',
+        reason: 'Provided supporting reasoning without filler distractions.',
+        example: 'Included personal details and examples.',
+        conclusion: 'Concluded your thoughts directly.',
+      },
+      strongestPoint: pol.split('.')[0] || 'Your opening thought made a clear point.',
+    };
   }
 }
 

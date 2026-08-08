@@ -11,7 +11,7 @@ app.use(express.json({ limit: '5mb' }));
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-// POST /api/polish — generate structured polished script from raw transcript
+// POST /api/polish — generate structured authentic polished script & thought blueprint mapping
 app.post('/api/polish', async (req, res) => {
   try {
     const { transcript, context } = req.body;
@@ -27,19 +27,33 @@ app.post('/api/polish', async (req, res) => {
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 2048,
-        system: `You are an executive speech coach and communication architect. Transform the user's spoken transcript into a remarkably structured, articulate, and executive-ready script.
+        system: `You are an authentic speech guide and communication architect.
+Your goal is to hear the user's spoken thoughts, preserve 100% of their authentic personal voice, vocabulary, and intent, while removing verbal clutter and revealing the clean mental structure of their ideas.
 
-Formatting & Structure Rules:
-1. PRESERVE THE USER'S AUTHENTIC VOICE, CORE IDEAS, AND LANGUAGE (English, Hindi, or Hinglish/code-switched). Do not fabricate new facts.
-2. ELIMINATE ALL FILLER WORDS ("um", "uh", "like", "you know", "basically", "matlab", "arre") AND AWKWARD REPETITIONS.
-3. STRUCTURE:
-   - For Question Drills (transcripts containing Q1, Q2...): Format each question with a bold header (e.g. **Question 1: ...**) followed by a clean, structured answer (using bullet points or concise executive paragraphs).
-   - For Free Talk: Organize into well-structured paragraphs with a compelling opening hook, clear body thoughts, and a strong closing statement.
-4. Elevate phrasing, sentence flow, and cadence so the user sounds confident, polished, and sharp.`,
+CRITICAL VOICE & AUTHENTICITY RULES:
+1. PRESERVE THE USER'S EXACT WORDS, STORIES, PERSONAL PHRASING, AND TONE. Do not fabricate new facts or change their personal style.
+2. DO NOT USE ROBOTIC CORPORATE AI JARGON ("in today's fast-paced landscape", "synergistic", "delve into", "leverage"). Keep it 100% natural and authentic to the user.
+3. STRIP VERBAL CLUTTER: Remove fillers ("um", "uh", "like", "you know", "basically", "matlab", "arre"), false starts, stuttered restarts, and trailing thoughts.
+4. STRUCTURE:
+   - For Question Drills / Slide Decks / Frameworks: Keep clear headers (e.g. **Question 1: ...** or **Slide 1: ...**) with clean spoken answers.
+   - For Free Talk: Organize into punchy, articulate paragraphs with a strong opening hook and clear closing statement.
+
+Return ONLY a raw JSON object with keys:
+{
+  "polished": "The de-cluttered authentic script preserving the user's exact words",
+  "structuralMapping": {
+    "point": "One-sentence summary of the core point stated by the user",
+    "reason": "The main rationale or justification provided",
+    "example": "The supporting detail, story, or evidence mentioned",
+    "conclusion": "The concluding takeaway or action item"
+  },
+  "strongestPoint": "The single most compelling or punchy sentence from their speech"
+}
+Do not include markdown codeblocks or extra text outside JSON.`,
         messages: [
           {
             role: 'user',
-            content: `Context: ${context || 'Free Talk'}. Raw transcript:\n${transcript}\n\nRewrite and structure this into a polished script in the user's authentic voice.`,
+            content: `Context: ${context || 'Free Talk'}. Raw spoken transcript:\n${transcript}\n\nDe-clutter and structure this while keeping 100% of the user's authentic voice.`,
           },
         ],
       }),
@@ -48,8 +62,24 @@ Formatting & Structure Rules:
     const data = await response.json();
     if (data.error) return res.status(500).json({ error: data.error.message });
 
-    const polished = data.content?.[0]?.text || '';
-    res.json({ polished });
+    const rawContent = data.content?.[0]?.text || '{}';
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    let parsed = {};
+    if (jsonMatch) {
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch {
+        parsed = { polished: rawContent };
+      }
+    } else {
+      parsed = { polished: rawContent };
+    }
+
+    res.json({
+      polished: parsed.polished || rawContent,
+      structuralMapping: parsed.structuralMapping || null,
+      strongestPoint: parsed.strongestPoint || null,
+    });
   } catch (err) {
     console.error('Polish API error:', err);
     res.status(500).json({ error: 'Failed to generate polished script' });
@@ -75,7 +105,7 @@ app.post('/api/compare', async (req, res) => {
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 256,
-        system: `You are a warm, honest speech coach. Given two session summaries, give ONE specific observation about what improved and ONE thing to still work on. Two sentences max. Be direct, not generic.`,
+        system: `You are a warm, authentic speech guide. Given two session summaries, give ONE specific observation about what improved in their speech structure and ONE gentle focus tip for next time. Two sentences max. Be encouraging and authentic.`,
         messages: [
           {
             role: 'user',
@@ -153,7 +183,7 @@ app.post('/api/generate-ladder-question', async (req, res) => {
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 512,
-        system: `You are an expert speech coach creating a progressive difficulty topic ladder.
+        system: `You are an authentic speech guide creating a progressive difficulty topic ladder.
 Generate a single speech prompt for Domain: "${domain}" at Difficulty Level ${level || 1}.
 
 Guidelines for Level Progression:

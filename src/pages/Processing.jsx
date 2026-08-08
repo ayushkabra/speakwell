@@ -3,7 +3,7 @@ import useSessionStore from '../store/useSessionStore';
 const STEPS = [
   'Transcribing your speech',
   'Analysing delivery',
-  'Writing your polished script',
+  'De-cluttering & polishing authentic script',
   'Building your scorecard',
 ];
 
@@ -14,7 +14,7 @@ export default function Processing() {
     <div className="animate-fade-up w-full max-w-[720px] mx-auto px-6 min-h-[calc(100vh-60px)] flex flex-col items-center justify-center gap-7 text-center">
       <div className="w-[52px] h-[52px] rounded-full border-[1.5px] border-border-md border-t-accent animate-spin-slow" />
       <div className="font-serif text-[26px] italic text-text">Listening closely…</div>
-      <div className="flex flex-col gap-3 text-left min-w-[240px]">
+      <div className="flex flex-col gap-3 text-left min-w-[280px]">
         {STEPS.map((label, i) => {
           const stepNum = i + 1;
           const isDone = processingStep > stepNum;

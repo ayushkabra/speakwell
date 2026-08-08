@@ -20,7 +20,7 @@ const useSessionStore = create((set, get) => ({
   // All saved sessions
   sessions: loadSessions(),
 
-  // Current session type: 'free' | 'drill' | 'ladder' | 'slide'
+  // Current session type: 'free' | 'drill' | 'ladder' | 'slide' | 'framework'
   sessionType: 'free',
 
   // Free talk state
@@ -48,6 +48,12 @@ const useSessionStore = create((set, get) => ({
   slideTimerSecs: 60,
   currentSlideIndex: 0,
   slideAnswers: [],
+
+  // Framework mode state
+  frameworkType: 'prep',
+  frameworkPrompt: '',
+  currentFrameworkStep: 0,
+  frameworkAnswers: [],
 
   // Current results (after recording)
   currentSession: null,
@@ -143,6 +149,33 @@ const useSessionStore = create((set, get) => ({
       slideDeck: [],
       currentSlideIndex: 0,
       slideAnswers: [],
+    }),
+
+  // Framework Actions
+  setFrameworkSetup: ({ frameworkType, prompt }) =>
+    set({
+      sessionType: 'framework',
+      frameworkType: frameworkType || 'prep',
+      frameworkPrompt: prompt || '',
+      currentFrameworkStep: 0,
+      frameworkAnswers: [],
+    }),
+
+  addFrameworkAnswer: (answer) =>
+    set((state) => {
+      const filtered = state.frameworkAnswers.filter((a) => a.stepIndex !== answer.stepIndex);
+      const updated = [...filtered, answer].sort((a, b) => a.stepIndex - b.stepIndex);
+      return { frameworkAnswers: updated };
+    }),
+
+  setCurrentFrameworkStep: (idx) => set({ currentFrameworkStep: idx }),
+
+  resetFramework: () =>
+    set({
+      frameworkType: 'prep',
+      frameworkPrompt: '',
+      currentFrameworkStep: 0,
+      frameworkAnswers: [],
     }),
 
   setCurrentSession: (session) => set({ currentSession: session }),

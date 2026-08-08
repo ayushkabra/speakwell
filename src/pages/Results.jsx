@@ -40,11 +40,12 @@ export default function Results() {
     );
   }
 
-  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, drillAnswers, sessionType } = session;
+  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, structuralMapping, strongestPoint, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
+  const isFramework = sessionType === 'framework';
   const isSlide = sessionType === 'slide';
   const isLadder = sessionType === 'ladder';
-  const isDrill = isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
+  const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   const handleCopyPolished = () => {
     if (!polishedScript) return;
@@ -77,19 +78,19 @@ export default function Results() {
       <div className="mb-8 border-b border-border/60 pb-4 flex items-center justify-between">
         <div>
           <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1 flex items-center gap-2 font-medium">
-            {isSlide ? '🖼️ Presentation Slide Deck Results' : isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
+            {isFramework ? '🧠 Guided Speech Framework Results' : isSlide ? '🖼️ Presentation Slide Deck Results' : isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
           </div>
           <h2 className="font-serif text-[32px] text-text font-normal">
-            {isSlide ? 'Slide Pitch Performance' : isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+            {isFramework ? 'Mental Structure & Authentic Speech' : isSlide ? 'Slide Pitch Performance' : isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
           </h2>
         </div>
 
         <div className="flex gap-3">
           <button
-            onClick={() => navigate(isSlide ? '/slide-setup' : isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
+            onClick={() => navigate(isFramework ? '/framework-setup' : isSlide ? '/slide-setup' : isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
             className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
           >
-            {isSlide ? 'Practice another Slide Deck →' : isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
+            {isFramework ? 'Practice another Framework →' : isSlide ? 'Practice another Slide Deck →' : isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
           </button>
         </div>
       </div>
@@ -115,13 +116,57 @@ export default function Results() {
           </button>
         </div>
 
-        {/* RIGHT COLUMN: Question/Slide Breakdown & Transcript / Executive Polished Script */}
+        {/* RIGHT COLUMN: Structural Blueprint & Question/Framework Breakdown & Polished Script */}
         <div className="flex flex-col gap-6">
-          {/* Question / Slide Breakdown Cards */}
+          {/* Structural Thought Blueprint Mapping Card */}
+          {structuralMapping && (
+            <div className="p-6 bg-surface border border-border-md rounded-2xl shadow-xl">
+              <div className="text-[10px] tracking-[0.18em] uppercase text-accent mb-3 font-semibold flex items-center justify-between">
+                <span>Structural Thought Blueprint 📐</span>
+                <span className="text-[10px] text-text3 font-normal">Authentic Thought Mapping</span>
+              </div>
+
+              {strongestPoint && (
+                <div className="mb-4 p-3.5 bg-accent/10 border border-accent/20 rounded-xl">
+                  <div className="text-[10px] uppercase text-accent font-semibold mb-1">🌟 Strongest Landed Point</div>
+                  <div className="text-[14px] text-text font-serif italic">"{strongestPoint}"</div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
+                {structuralMapping.point && (
+                  <div className="p-3.5 bg-surface2/60 border border-border rounded-xl">
+                    <span className="text-[10px] text-accent font-semibold block mb-1 uppercase">📌 Core Point Stated</span>
+                    <span className="text-[13px] text-text2 leading-[1.5] block">{structuralMapping.point}</span>
+                  </div>
+                )}
+                {structuralMapping.reason && (
+                  <div className="p-3.5 bg-surface2/60 border border-border rounded-xl">
+                    <span className="text-[10px] text-accent font-semibold block mb-1 uppercase">💡 Key Rationale</span>
+                    <span className="text-[13px] text-text2 leading-[1.5] block">{structuralMapping.reason}</span>
+                  </div>
+                )}
+                {structuralMapping.example && (
+                  <div className="p-3.5 bg-surface2/60 border border-border rounded-xl">
+                    <span className="text-[10px] text-accent font-semibold block mb-1 uppercase">🎯 Evidence / Example</span>
+                    <span className="text-[13px] text-text2 leading-[1.5] block">{structuralMapping.example}</span>
+                  </div>
+                )}
+                {structuralMapping.conclusion && (
+                  <div className="p-3.5 bg-surface2/60 border border-border rounded-xl">
+                    <span className="text-[10px] text-accent font-semibold block mb-1 uppercase">🏁 Wrap-Up Takeaway</span>
+                    <span className="text-[13px] text-text2 leading-[1.5] block">{structuralMapping.conclusion}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Question / Step / Slide Breakdown Cards */}
           {isDrill && drillAnswers && drillAnswers.length > 0 && (
             <div className="p-6 bg-surface border border-border-md rounded-2xl shadow-xl">
               <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 font-medium flex items-center justify-between">
-                <span>{isSlide ? `Slide-by-Slide Pitch Breakdown (${drillAnswers.length} Slides)` : isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
+                <span>{isFramework ? `Framework Step Breakdown (${drillAnswers.length} Steps)` : isSlide ? `Slide-by-Slide Pitch Breakdown (${drillAnswers.length} Slides)` : isLadder ? `Level-by-Level Progression (${drillAnswers.length} Levels)` : `Question-by-Question Breakdown (${drillAnswers.length} Questions)`}</span>
               </div>
               <div className="flex flex-col gap-3">
                 {drillAnswers.map((ans, idx) => (
@@ -135,7 +180,7 @@ export default function Results() {
                     >
                       <div className="flex items-center gap-3 truncate max-w-[70%]">
                         <span className="w-8 h-8 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-medium shrink-0">
-                          {isSlide ? `S${ans.pageNum || idx + 1}` : isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
+                          {isFramework ? `Step ${ans.stepNum || idx + 1}` : isSlide ? `S${ans.pageNum || idx + 1}` : isLadder ? `L${ans.level || idx + 1}` : `Q${idx + 1}`}
                         </span>
                         <div className="font-sans text-[14px] text-text font-medium truncate">
                           {ans.title || ans.questionText}
@@ -154,7 +199,7 @@ export default function Results() {
 
                     {expandedQuestion === idx && (
                       <div className="p-4 pt-2 border-t border-border bg-surface/80">
-                        <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Spoken Pitch</div>
+                        <div className="text-[11px] text-text3 uppercase tracking-wider mb-1">Spoken Speech</div>
                         <div className="text-[14px] text-text2 leading-[1.7] mb-3 p-3 bg-surface border border-border rounded-lg">
                           {ans.transcript}
                         </div>
@@ -183,7 +228,7 @@ export default function Results() {
                     className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
                       ${activeTab === tab ? 'text-accent border-b-accent font-medium' : 'text-text3 border-b-transparent'}`}
                   >
-                    {tab === 'transcript' ? 'Full Session Transcript' : 'Executive Polished Version'}
+                    {tab === 'transcript' ? 'Full Session Transcript' : 'Authentic De-Cluttered Version'}
                   </button>
                 ))}
               </div>
@@ -210,7 +255,7 @@ export default function Results() {
               <div className="p-5 bg-surface2/50 border border-border rounded-xl max-h-[460px] overflow-y-auto">
                 <div
                   className="font-sans text-[15px] leading-[1.85] text-text whitespace-pre-wrap text-left"
-                  dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating polished script...' }}
+                  dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating authentic script...' }}
                 />
               </div>
             )}

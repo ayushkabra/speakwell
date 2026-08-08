@@ -34,8 +34,8 @@ export default function Home() {
             Speak freely.<br />
             <em className="italic text-accent">Sound sharp.</em>
           </h1>
-          <p className="text-[15px] text-text2 leading-[1.8] max-w-[560px]">
-            Practice open speech, drill question lists, step up topic ladders, or rehearse slide decks. We listen, analyze, and hand you back a polished version of yourself.
+          <p className="text-[15px] text-text2 leading-[1.8] max-w-[600px]">
+            Practice open speech, structure thoughts with mental frameworks, drill question lists, step up topic ladders, or rehearse slide decks. We listen, de-clutter, and hand you back a polished version of your authentic voice.
           </p>
         </div>
 
@@ -49,8 +49,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Practice Mode Cards (4-Column Grid) */}
-      <div className="grid grid-cols-4 gap-4 max-[1024px]:grid-cols-2 max-[640px]:grid-cols-1 mb-12">
+      {/* Practice Mode Cards (Responsive Grid) */}
+      <div className="grid grid-cols-5 gap-3.5 max-[1100px]:grid-cols-3 max-[680px]:grid-cols-1 mb-12">
         <div
           onClick={() => navigate('/context')}
           className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
@@ -75,6 +75,29 @@ export default function Home() {
         </div>
 
         <div
+          onClick={() => navigate('/framework-setup')}
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[26px]">🧠</span>
+              <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
+                Guide →
+              </span>
+            </div>
+            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+              Speech Frameworks <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            </div>
+            <div className="text-[12px] text-text3 leading-[1.5]">
+              Structure thoughts with PREP, STAR, or What-So What-Now What.
+            </div>
+          </div>
+          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+            Mental Structure Guide
+          </div>
+        </div>
+
+        <div
           onClick={() => navigate('/drill-setup')}
           className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
@@ -89,7 +112,7 @@ export default function Home() {
               Question Drills
             </div>
             <div className="text-[12px] text-text3 leading-[1.5]">
-              Upload PDF or paste question list. Practice answering item-by-item with timers.
+              Upload PDF or paste question list. Practice item-by-item.
             </div>
           </div>
           <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
@@ -112,7 +135,7 @@ export default function Home() {
               Topic Ladders
             </div>
             <div className="text-[12px] text-text3 leading-[1.5]">
-              Pick a domain and answer questions that get endlessly deeper & tougher.
+              Pick a domain and answer questions that get endlessly deeper.
             </div>
           </div>
           <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
@@ -122,7 +145,7 @@ export default function Home() {
 
         <div
           onClick={() => navigate('/slide-setup')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
+          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -132,7 +155,7 @@ export default function Home() {
               </span>
             </div>
             <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
-              Slide Decks <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+              Slide Decks
             </div>
             <div className="text-[12px] text-text3 leading-[1.5]">
               Upload presentation PDF and rehearse pitch audio slide-by-slide.
@@ -181,11 +204,11 @@ export default function Home() {
               >
                 <div className="flex flex-col gap-[3px] truncate max-w-[80%]">
                   <div className="text-[14px] font-medium text-text flex items-center gap-2 truncate">
-                    <span>{s.sessionType === 'slide' ? '🖼️' : s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
+                    <span>{s.sessionType === 'framework' ? '🧠' : s.sessionType === 'slide' ? '🖼️' : s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
                     <span className="truncate">{s.context || 'Free Talk'}</span>
                   </div>
                   <div className="text-[12px] text-text3">
-                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Slides/Qs` : s.language || 'Auto'}
+                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Steps/Qs` : s.language || 'Auto'}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -203,7 +226,7 @@ export default function Home() {
       {sessions.length === 0 && (
         <div className="text-center py-16 text-text3 text-[14px]">
           <p className="mb-2">No sessions yet.</p>
-          <p>Choose "Free Talk", "Question Drills", "Topic Ladders", or "Slide Decks" to start practicing.</p>
+          <p>Choose "Free Talk", "Speech Frameworks", "Question Drills", "Topic Ladders", or "Slide Decks" to start practicing.</p>
         </div>
       )}
     </div>
