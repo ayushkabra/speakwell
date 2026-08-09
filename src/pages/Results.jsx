@@ -42,6 +42,7 @@ export default function Results() {
 
   const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, structuralMapping, strongestPoint, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
+  const isScript = sessionType === 'script';
   const isFramework = sessionType === 'framework';
   const isSlide = sessionType === 'slide';
   const isLadder = sessionType === 'ladder';
@@ -78,19 +79,19 @@ export default function Results() {
       <div className="mb-8 border-b border-border/60 pb-4 flex items-center justify-between">
         <div>
           <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-1 flex items-center gap-2 font-medium">
-            {isFramework ? '🧠 Guided Speech Framework Results' : isSlide ? '🖼️ Presentation Slide Deck Results' : isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
+            {isScript ? '📜 Script Rehearsal Teleprompter Results' : isFramework ? '🧠 Guided Speech Framework Results' : isSlide ? '🖼️ Presentation Slide Deck Results' : isLadder ? '🪜 Topic Ladder Mastery Results' : isDrill ? '🎯 Question Drill Results' : '🎙️ Session Results'}
           </div>
           <h2 className="font-serif text-[32px] text-text font-normal">
-            {isFramework ? 'Mental Structure & Authentic Speech' : isSlide ? 'Slide Pitch Performance' : isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
+            {isScript ? 'Script Delivery & Pacing Overview' : isFramework ? 'Mental Structure & Authentic Speech' : isSlide ? 'Slide Pitch Performance' : isLadder ? 'Endless Ladder Overview' : isDrill ? 'Drill Performance Overview' : 'Speech Performance'}
           </h2>
         </div>
 
         <div className="flex gap-3">
           <button
-            onClick={() => navigate(isFramework ? '/framework-setup' : isSlide ? '/slide-setup' : isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
+            onClick={() => navigate(isScript ? '/script-setup' : isFramework ? '/framework-setup' : isSlide ? '/slide-setup' : isLadder ? '/ladder-setup' : isDrill ? '/drill-setup' : '/context')}
             className="inline-flex items-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-md"
           >
-            {isFramework ? 'Practice another Framework →' : isSlide ? 'Practice another Slide Deck →' : isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
+            {isScript ? 'Practice another Script →' : isFramework ? 'Practice another Framework →' : isSlide ? 'Practice another Slide Deck →' : isLadder ? 'Practice another Ladder →' : isDrill ? 'Practice another drill →' : 'New session →'}
           </button>
         </div>
       </div>

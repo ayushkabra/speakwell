@@ -71,7 +71,7 @@ export default function Context() {
       </div>
 
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
           Free Talk Mode
         </div>
@@ -81,6 +81,20 @@ export default function Context() {
         <p className="text-[15px] text-text2 leading-[1.6]">
           Choose a context, type your own topic, or spin a random prompt to test your impromptu speaking skills.
         </p>
+      </div>
+
+      {/* Guided Thought Framework Suggestion Banner */}
+      <div className="mb-8 p-4 bg-accent/10 border border-accent/20 rounded-xl flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 text-[13px] text-text2">
+          <span>🧠</span>
+          <span>Want step-by-step mental guidance while speaking? Try <strong>PREP</strong> or <strong>STAR</strong> frameworks.</span>
+        </div>
+        <button
+          onClick={() => navigate('/framework-setup')}
+          className="text-[12px] text-accent hover:underline font-semibold cursor-pointer bg-transparent border-none p-0"
+        >
+          Explore Frameworks Mode →
+        </button>
       </div>
 
       {/* Mode Sub-Tabs */}

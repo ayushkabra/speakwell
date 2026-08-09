@@ -20,7 +20,7 @@ const useSessionStore = create((set, get) => ({
   // All saved sessions
   sessions: loadSessions(),
 
-  // Current session type: 'free' | 'drill' | 'ladder' | 'slide' | 'framework'
+  // Current session type: 'free' | 'drill' | 'ladder' | 'slide' | 'framework' | 'script'
   sessionType: 'free',
 
   // Free talk state
@@ -54,6 +54,11 @@ const useSessionStore = create((set, get) => ({
   frameworkPrompt: '',
   currentFrameworkStep: 0,
   frameworkAnswers: [],
+
+  // Script Rehearsal state
+  scriptText: '',
+  scriptTitle: '',
+  scriptPaceWpm: 140,
 
   // Current results (after recording)
   currentSession: null,
@@ -176,6 +181,22 @@ const useSessionStore = create((set, get) => ({
       frameworkPrompt: '',
       currentFrameworkStep: 0,
       frameworkAnswers: [],
+    }),
+
+  // Script Actions
+  setScriptSetup: ({ text, title, paceWpm }) =>
+    set({
+      sessionType: 'script',
+      scriptText: text || '',
+      scriptTitle: title || 'Script Rehearsal',
+      scriptPaceWpm: paceWpm || 140,
+    }),
+
+  resetScript: () =>
+    set({
+      scriptText: '',
+      scriptTitle: '',
+      scriptPaceWpm: 140,
     }),
 
   setCurrentSession: (session) => set({ currentSession: session }),

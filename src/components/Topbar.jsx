@@ -6,7 +6,7 @@ export default function Topbar() {
   const selectedContext = useSessionStore((s) => s.selectedContext);
   const sessionType = useSessionStore((s) => s.sessionType);
 
-  const showBadge = ['/record', '/drill-record', '/ladder-record', '/slide-record', '/framework-record', '/processing', '/results'].some((p) =>
+  const showBadge = ['/record', '/drill-record', '/ladder-record', '/slide-record', '/framework-record', '/script-record', '/processing', '/results'].some((p) =>
     location.pathname.startsWith(p)
   );
 
@@ -47,6 +47,19 @@ export default function Topbar() {
           }
         >
           Free Talk
+        </NavLink>
+
+        <NavLink
+          to="/script-setup"
+          className={({ isActive }) =>
+            `text-[12px] sm:text-[13px] px-2.5 sm:px-3 py-[6px] rounded-lg cursor-pointer transition-all duration-[180ms] no-underline font-sans font-light shrink-0 flex items-center gap-1 ${
+              isActive || location.pathname === '/script-record' || (location.pathname === '/record' && sessionType === 'script')
+                ? 'text-accent bg-accent-dim font-medium'
+                : 'text-text2 hover:text-text hover:bg-surface2'
+            }`
+          }
+        >
+          Script 📜
         </NavLink>
 
         <NavLink
@@ -119,7 +132,7 @@ export default function Topbar() {
       <div className="hidden lg:flex items-center gap-2 shrink-0">
         {showBadge && (
           <div className="text-[11px] bg-accent-dim border border-accent-border text-accent px-3 py-1 rounded-full tracking-[0.02em] font-medium max-w-[140px] truncate">
-            {selectedContext || (sessionType === 'framework' ? 'Framework' : sessionType === 'slide' ? 'Slide Deck' : sessionType === 'ladder' ? 'Topic Ladder' : sessionType === 'drill' ? 'Question Drill' : 'Free Talk')}
+            {selectedContext || (sessionType === 'script' ? 'Script Rehearsal' : sessionType === 'framework' ? 'Framework' : sessionType === 'slide' ? 'Slide Deck' : sessionType === 'ladder' ? 'Topic Ladder' : sessionType === 'drill' ? 'Question Drill' : 'Free Talk')}
           </div>
         )}
       </div>

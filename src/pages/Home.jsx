@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
+import { getTodayWord } from '../lib/dailyWordGenerator';
 
 function fmt(s) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -15,27 +16,39 @@ export default function Home() {
   const sessions = useSessionStore((s) => s.sessions);
   const getStats = useSessionStore((s) => s.getStats);
   const setCurrentSession = useSessionStore((s) => s.setCurrentSession);
+  const setContext = useSessionStore((s) => s.setContext);
+  const setCustomContext = useSessionStore((s) => s.setCustomContext);
+  const setSessionType = useSessionStore((s) => s.setSessionType);
+
   const stats = getStats();
+  const todayWordObj = getTodayWord();
 
   const handleSessionClick = (session) => {
     setCurrentSession(session);
     navigate('/results');
   };
 
+  const handleStartDailyWord = () => {
+    setSessionType('free');
+    setContext(`Daily Word: ${todayWordObj.word}`);
+    setCustomContext(`Reflecting on "${todayWordObj.word}" (${todayWordObj.definition})`);
+    navigate('/record');
+  };
+
   return (
-    <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-16 pb-20 max-[680px]:px-5">
+    <div className="animate-fade-up w-full max-w-[1140px] mx-auto px-8 pt-14 pb-20 max-[680px]:px-4">
       {/* Hero Header */}
-      <div className="mb-12 flex items-end justify-between flex-wrap gap-6">
+      <div className="mb-8 flex items-end justify-between flex-wrap gap-6 max-[680px]:mb-6">
         <div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-3">
+          <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
             Say it better
           </div>
-          <h1 className="font-serif text-[56px] leading-[1.06] font-normal text-text mb-4 max-[680px]:text-[36px]">
+          <h1 className="font-serif text-[56px] leading-[1.06] font-normal text-text mb-3 max-[680px]:text-[34px]">
             Speak freely.<br />
             <em className="italic text-accent">Sound sharp.</em>
           </h1>
-          <p className="text-[15px] text-text2 leading-[1.8] max-w-[600px]">
-            Practice open speech, structure thoughts with mental frameworks, drill question lists, step up topic ladders, or rehearse slide decks. We listen, de-clutter, and hand you back a polished version of your authentic voice.
+          <p className="text-[15px] text-text2 leading-[1.75] max-w-[620px]">
+            Practice open speech, rehearse debate scripts, structure thoughts with mental frameworks, drill question lists, step up topic ladders, or rehearse slide decks.
           </p>
         </div>
 
@@ -49,140 +62,199 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Practice Mode Cards (Responsive Grid) */}
-      <div className="grid grid-cols-5 gap-3.5 max-[1100px]:grid-cols-3 max-[680px]:grid-cols-1 mb-12">
+      {/* SLEEK LOW-PROFILE EDITORIAL DAILY WORD STRIP (Zero Heavy Box Wall) */}
+      <div className="mb-10 p-5 px-6 max-[680px]:px-4 bg-surface/50 border-l-4 border-l-accent border-t border-r border-b border-border/80 rounded-r-2xl rounded-l-sm shadow-sm transition-all hover:border-border-hi">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex-1 min-w-[280px]">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold">
+                📅 WORD OF THE DAY
+              </span>
+              <span className="text-[12px] font-mono text-text3">· {todayWordObj.phonetic}</span>
+              <span className="text-[12px] text-text3">({todayWordObj.partOfSpeech})</span>
+            </div>
+
+            <div className="flex items-baseline gap-3 flex-wrap mb-1">
+              <h3 className="font-serif text-[26px] text-text font-normal">
+                "{todayWordObj.word}"
+              </h3>
+              <span className="text-[13px] text-text3 italic">— {todayWordObj.definition}</span>
+            </div>
+
+            <p className="text-[13px] text-text2 leading-[1.5] mt-1">
+              💡 <strong className="text-accent font-medium">Prompt:</strong> {todayWordObj.prompt}
+            </p>
+          </div>
+
+          <button
+            onClick={handleStartDailyWord}
+            className="inline-flex items-center justify-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-6 py-3 font-sans text-[13px] font-medium cursor-pointer transition-all duration-[180ms] hover:opacity-90 active:scale-[0.96] shadow-md shrink-0 max-[680px]:w-full"
+          >
+            Reflect on {todayWordObj.word} (60s) 🎙️ →
+          </button>
+        </div>
+      </div>
+
+      {/* Practice Mode Cards (Sleek 3-Column Desktop Grid) */}
+      <div className="text-[10px] tracking-[0.18em] uppercase text-text3 mb-4 font-medium">
+        Practice Modes & Rehearsal Suites
+      </div>
+      <div className="grid grid-cols-3 gap-4.5 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 mb-12">
         <div
           onClick={() => navigate('/context')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[26px]">🎙️</span>
+              <span className="text-[28px]">🎙️</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Start →
               </span>
             </div>
-            <div className="font-sans text-[16px] font-medium text-text mb-1">
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5">
               Free Talk Mode
             </div>
-            <div className="text-[12px] text-text3 leading-[1.5]">
-              Speak freely on any topic without artificial limits or rules.
+            <div className="text-[13px] text-text3 leading-[1.5]">
+              Speak freely on any topic or prompt without artificial limits or rules.
             </div>
           </div>
-          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
             Open Speech Practice
           </div>
         </div>
 
         <div
-          onClick={() => navigate('/framework-setup')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
+          onClick={() => navigate('/script-setup')}
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between relative overflow-hidden"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[26px]">🧠</span>
+              <span className="text-[28px]">📜</span>
+              <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
+                Rehearse →
+              </span>
+            </div>
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5 flex items-center gap-1.5">
+              Script Teleprompter <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            </div>
+            <div className="text-[13px] text-text3 leading-[1.5]">
+              Rehearse debate speeches, monologues, or pitches with teleprompter pace controls.
+            </div>
+          </div>
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
+            Script & Speech Rehearsal
+          </div>
+        </div>
+
+        <div
+          onClick={() => navigate('/framework-setup')}
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[28px]">🧠</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Guide →
               </span>
             </div>
-            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
-              Speech Frameworks <span className="bg-accent/20 text-accent text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">New</span>
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5 flex items-center gap-1.5">
+              Speech Frameworks
             </div>
-            <div className="text-[12px] text-text3 leading-[1.5]">
-              Structure thoughts with PREP, STAR, or What-So What-Now What.
+            <div className="text-[13px] text-text3 leading-[1.5]">
+              Structure thoughts step-by-step with PREP, STAR, or What-So What-Now What.
             </div>
           </div>
-          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
             Mental Structure Guide
           </div>
         </div>
 
         <div
           onClick={() => navigate('/drill-setup')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[26px]">🎯</span>
+              <span className="text-[28px]">🎯</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Setup →
               </span>
             </div>
-            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5 flex items-center gap-1.5">
               Question Drills
             </div>
-            <div className="text-[12px] text-text3 leading-[1.5]">
-              Upload PDF or paste question list. Practice item-by-item.
+            <div className="text-[13px] text-text3 leading-[1.5]">
+              Upload PDF or paste custom question lists. Practice answering item-by-item.
             </div>
           </div>
-          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
             Itemized Q&A Practice
           </div>
         </div>
 
         <div
           onClick={() => navigate('/ladder-setup')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[26px]">🪜</span>
+              <span className="text-[28px]">🪜</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Explore →
               </span>
             </div>
-            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5 flex items-center gap-1.5">
               Topic Ladders
             </div>
-            <div className="text-[12px] text-text3 leading-[1.5]">
-              Pick a domain and answer questions that get endlessly deeper.
+            <div className="text-[13px] text-text3 leading-[1.5]">
+              Pick any domain and answer questions that get endlessly deeper and tougher.
             </div>
           </div>
-          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
             Progressive Deep-Dive
           </div>
         </div>
 
         <div
           onClick={() => navigate('/slide-setup')}
-          className="p-5 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
+          className="p-6 bg-surface border border-border-md rounded-2xl cursor-pointer transition-all duration-200 hover:border-accent-border hover:bg-surface2 group shadow-xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[26px]">🖼️</span>
+              <span className="text-[28px]">🖼️</span>
               <span className="text-[12px] text-accent font-medium group-hover:translate-x-1 transition-transform">
                 Upload →
               </span>
             </div>
-            <div className="font-sans text-[16px] font-medium text-text mb-1 flex items-center gap-1.5">
+            <div className="font-sans text-[17px] font-medium text-text mb-1.5 flex items-center gap-1.5">
               Slide Decks
             </div>
-            <div className="text-[12px] text-text3 leading-[1.5]">
+            <div className="text-[13px] text-text3 leading-[1.5]">
               Upload presentation PDF and rehearse pitch audio slide-by-slide.
             </div>
           </div>
-          <div className="mt-5 text-[10px] text-accent font-mono uppercase tracking-wider">
-            Slide Teleprompter
+          <div className="mt-6 text-[10px] text-accent font-mono uppercase tracking-wider">
+            Slide Presentation Pitch
           </div>
         </div>
       </div>
 
       {/* Stats Overview Bar */}
-      <div className="flex gap-0 py-7 border-t border-t-border border-b border-b-border mb-12 bg-surface/40 rounded-2xl px-6">
-        <div className="flex-1 pr-8">
-          <div className="font-serif text-[40px] italic text-accent leading-none mb-1">
+      <div className="flex gap-0 py-7 border-t border-t-border border-b border-b-border mb-12 bg-surface/40 rounded-2xl px-6 max-[680px]:px-4">
+        <div className="flex-1 pr-6 max-[680px]:pr-3">
+          <div className="font-serif text-[40px] italic text-accent leading-none mb-1 max-[680px]:text-[28px]">
             {stats.count}
           </div>
           <div className="text-[11px] text-text3 tracking-[0.1em] uppercase">Total Sessions</div>
         </div>
-        <div className="flex-1 pr-8 border-l border-l-border pl-8">
-          <div className="font-serif text-[40px] italic text-accent leading-none mb-1">
+        <div className="flex-1 pr-6 border-l border-l-border pl-6 max-[680px]:pl-3 max-[680px]:pr-3">
+          <div className="font-serif text-[40px] italic text-accent leading-none mb-1 max-[680px]:text-[28px]">
             {stats.best || '—'}
           </div>
           <div className="text-[11px] text-text3 tracking-[0.1em] uppercase">Best Score</div>
         </div>
-        <div className="flex-1 border-l border-l-border pl-8">
-          <div className="font-serif text-[40px] italic text-accent leading-none mb-1">
+        <div className="flex-1 border-l border-l-border pl-6 max-[680px]:pl-3">
+          <div className="font-serif text-[40px] italic text-accent leading-none mb-1 max-[680px]:text-[28px]">
             {stats.gained > 0 ? `↑${stats.gained}` : stats.gained === 0 ? '—' : `↓${Math.abs(stats.gained)}`}
           </div>
           <div className="text-[11px] text-text3 tracking-[0.1em] uppercase">Points Gained</div>
@@ -204,11 +276,11 @@ export default function Home() {
               >
                 <div className="flex flex-col gap-[3px] truncate max-w-[80%]">
                   <div className="text-[14px] font-medium text-text flex items-center gap-2 truncate">
-                    <span>{s.sessionType === 'framework' ? '🧠' : s.sessionType === 'slide' ? '🖼️' : s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
+                    <span>{s.sessionType === 'script' ? '📜' : s.sessionType === 'framework' ? '🧠' : s.sessionType === 'slide' ? '🖼️' : s.sessionType === 'ladder' ? '🪜' : s.sessionType === 'drill' ? '🎯' : '🎙️'}</span>
                     <span className="truncate">{s.context || 'Free Talk'}</span>
                   </div>
                   <div className="text-[12px] text-text3">
-                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.drillAnswers ? `${s.drillAnswers.length} Steps/Qs` : s.language || 'Auto'}
+                    {formatDate(s.date)} · {fmt(s.durationSecs)} · {s.language || 'Auto'}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -226,7 +298,7 @@ export default function Home() {
       {sessions.length === 0 && (
         <div className="text-center py-16 text-text3 text-[14px]">
           <p className="mb-2">No sessions yet.</p>
-          <p>Choose "Free Talk", "Speech Frameworks", "Question Drills", "Topic Ladders", or "Slide Decks" to start practicing.</p>
+          <p>Choose "Daily Word", "Script Rehearsal", "Free Talk", "Frameworks", "Drills", "Ladders", or "Slide Decks" to start practicing.</p>
         </div>
       )}
     </div>

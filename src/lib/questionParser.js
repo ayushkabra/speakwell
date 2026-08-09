@@ -109,11 +109,8 @@ export function cleanQuestionPrefix(line) {
 
   return line
     .trim()
-    // Strip explicit prefixes like Q1:, Q-1, Q.1, Q 1, Question 1:, Prompt 1:, Task 1:, Problem 1:, Scenario 1:
     .replace(/^(?:Q\s*[\d\.-]+:?|Question\s*[\d\.-]+:?|Prompt\s*\d+:?|Task\s*\d+:?|Problem\s*\d+:?|Scenario\s*\d+:?|Case\s*\d+:?)\s*/i, '')
-    // Strip numbers & letters like 1., 1), (1), 1 -, I., II., A., a)
     .replace(/^(?:\(\d+\)|\d+[\.\)\-]|[A-Za-z][\.\)]|[IVXLCDM]+[\.\)])\s*/i, '')
-    // Strip bullet icons & dashes like •, -, *, >, —, ▪, ▫
     .replace(/^(?:[•\-*>\u2014\u25AA\u25AB])\s*/, '')
     .trim();
 }
@@ -125,23 +122,16 @@ export function isLikelyQuestion(text) {
   if (!text || text.trim().length < 4) return false;
   const clean = cleanQuestionPrefix(text);
 
-  // Exclude obvious flowchart arrows, log traces, or system markers
   if (clean.includes('→') || /^User speaks|Your answer:|SECTION \d+:|Page \d+/i.test(clean)) {
     return false;
   }
 
-  // 1. Explicit question mark at the end
   if (clean.endsWith('?')) return true;
-
-  // 2. Contains a question mark anywhere in the sentence
   if (clean.includes('?')) return true;
-
-  // 3. Starts with explicit Question/Prompt identifiers
   if (/^(?:Q\d+:?|Question\s*\d+:?|Prompt\s*\d+:?|Task\s*\d+:?|Problem\s*\d+:?)/i.test(text.trim())) {
     return true;
   }
 
-  // 4. Starts with English or Hinglish interrogative / prompt words
   const questionStartRegex = /^(?:what|how|why|when|where|who|which|can|could|would|should|tell|describe|explain|walk|give|do|does|is|are|have|has|discuss|design|compare|analyze|propose|evaluate|formulate|detail|outline|list|define|identify|suppose|imagine|if|kya|kaise|kyun|kab|kaha|batao|samjhao)\b/i;
 
   return questionStartRegex.test(clean);
@@ -155,7 +145,6 @@ export function parseQuestionsFromText(rawText) {
 
   const text = rawText.trim();
 
-  // Pattern 1: Look for explicit Q1:, Q2:, Q3: or Question 1: blocks
   const qNumMatches = text.match(/(?:Q\d+:?|Question\s*\d+:?)\s*[^?\n]+(?:\?|\n|$)/gi);
   if (qNumMatches && qNumMatches.length >= 2) {
     return qNumMatches
@@ -163,13 +152,11 @@ export function parseQuestionsFromText(rawText) {
       .filter((q) => q.length > 5);
   }
 
-  // Pattern 2: Split by line breaks
   const rawLines = text.split(/\n+|\r+/);
   const questions = [];
 
   for (let line of rawLines) {
     const cleaned = cleanQuestionPrefix(line);
-
     if (isLikelyQuestion(line) || isLikelyQuestion(cleaned)) {
       if (cleaned.length > 4) {
         questions.push(cleaned);
@@ -177,7 +164,6 @@ export function parseQuestionsFromText(rawText) {
     }
   }
 
-  // Pattern 3: Split by question marks if line split returned fewer questions
   if (questions.length < 2 && text.includes('?')) {
     const qSplits = text
       .split(/(?<=\?)/)
@@ -193,64 +179,107 @@ export function parseQuestionsFromText(rawText) {
 }
 
 /**
- * Smart PDF/File Question Extractor using PDF.js & Claude API Backend
+ * Clean Document Text Extractor for PDFs and documents
  */
-export async function parseQuestionsFromFile(file) {
-  if (!file) return [];
-
+export async function extractTextFromFile(file) {
+  if (!file) return '';
   const fileName = file.name.toLowerCase();
 
   // 1. Text & Markdown files
   if (fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.csv') || fileName.endsWith('.json')) {
-    const text = await file.text();
-    return parseQuestionsFromText(text);
+    return await file.text();
   }
 
   // 2. PDF Files using PDF.js
   if (fileName.endsWith('.pdf')) {
-    let extractedText = '';
-
     try {
       const arrayBuffer = await file.arrayBuffer();
-      if (window.pdfjsLib) {
-        if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
 
-        const loadingTask = window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+      let pdfjsLib = window.pdfjsLib;
+      if (!pdfjsLib) {
+        pdfjsLib = await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.onload = () => resolve(window.pdfjsLib);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      if (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
         const pdf = await loadingTask.promise;
+        let extractedText = '';
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
           const textContent = await page.getTextContent();
           const pageItems = textContent.items.map((item) => item.str);
-          extractedText += pageItems.join(' ') + '\n';
+          const pageStr = pageItems.join(' ').replace(/\s+/g, ' ').trim();
+          if (pageStr) {
+            extractedText += pageStr + '\n\n';
+          }
         }
+
+        // Clean out common PDF metadata leftovers if any
+        let cleanText = extractedText
+          .replace(/\/Contents\s+\d+\s+\d+\s+R/g, '')
+          .replace(/\/Resources\s+\d+\s+\d+\s+R/g, '')
+          .replace(/%PDF-\d+\.\d+/g, '')
+          .replace(/endobj|stream|endstream/g, '')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+        if (cleanText) return cleanText;
       }
     } catch (err) {
-      console.warn('PDF.js client extraction error:', err);
-    }
-
-    if (extractedText.trim()) {
-      try {
-        const response = await fetch('http://localhost:3001/api/extract-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ documentText: extractedText }),
-        });
-        const data = await response.json();
-        if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
-          return data.questions.map((q) => cleanQuestionPrefix(q));
-        }
-      } catch (err) {
-        console.warn('Claude API question extraction offline or unreachable, using local parser:', err);
-      }
-
-      return parseQuestionsFromText(extractedText);
+      console.warn('PDF client extraction error:', err);
     }
   }
 
-  const text = await file.text();
+  try {
+    const raw = await file.text();
+    // If raw contains PDF binary header, strip PDF markers
+    if (raw.includes('%PDF-') || raw.includes('/Contents') || raw.includes('/Resources')) {
+      return raw
+        .replace(/%PDF-[\s\S]*?stream/g, '')
+        .replace(/\/Contents\s+\d+\s+\d+\s+R/g, '')
+        .replace(/\/Resources\s+\d+\s+\d+\s+R/g, '')
+        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+    return raw;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Smart PDF/File Question Extractor using PDF.js & Claude API Backend
+ */
+export async function parseQuestionsFromFile(file) {
+  if (!file) return [];
+
+  const text = await extractTextFromFile(file);
+  if (!text) return [];
+
+  try {
+    const response = await fetch('http://localhost:3001/api/extract-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentText: text }),
+    });
+    const data = await response.json();
+    if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+      return data.questions.map((q) => cleanQuestionPrefix(q));
+    }
+  } catch (err) {
+    console.warn('Claude API question extraction offline or unreachable, using local parser:', err);
+  }
+
   return parseQuestionsFromText(text);
 }
