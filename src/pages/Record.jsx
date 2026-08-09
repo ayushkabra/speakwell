@@ -66,10 +66,8 @@ export default function Record() {
   const setupRecognition = useCallback(() => {
     createRecognition({
       onResult: ({ finalText: fin, interimText: interim }) => {
-        if (fin) {
-          finalTextRef.current += fin;
-          setFinalText(finalTextRef.current);
-        }
+        finalTextRef.current = fin;
+        setFinalText(fin);
         setInterimText(interim);
       },
       onError: (error) => {

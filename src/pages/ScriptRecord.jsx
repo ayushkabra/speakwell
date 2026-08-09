@@ -61,9 +61,7 @@ export default function ScriptRecord() {
 
     createRecognition({
       onResult: ({ finalText, interimText }) => {
-        if (finalText) {
-          setTranscript((prev) => (prev ? prev + ' ' + finalText : finalText));
-        }
+        setTranscript(finalText);
         setInterim(interimText || '');
       },
       onError: (err) => {

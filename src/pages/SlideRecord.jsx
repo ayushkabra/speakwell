@@ -48,9 +48,7 @@ export default function SlideRecord() {
 
     createRecognition({
       onResult: ({ finalText, interimText }) => {
-        if (finalText) {
-          setTranscript((prev) => (prev ? prev + ' ' + finalText : finalText));
-        }
+        setTranscript(finalText);
         setInterim(interimText || '');
       },
       onError: (err) => {
@@ -116,13 +114,12 @@ export default function SlideRecord() {
     }
   };
 
-  // Navigate to Previous Slide (CRITICAL USER REQUEST)
+  // Navigate to Previous Slide
   const handlePreviousSlide = () => {
     if (currentSlideIndex <= 0) return;
     stopListening();
     setIsRecording(false);
 
-    // Save current slide progress before leaving
     const fullTranscript = (transcript + ' ' + interim).trim();
     if (fullTranscript || elapsed > 0) {
       const duration = elapsed || 1;
@@ -140,7 +137,6 @@ export default function SlideRecord() {
     const prevIndex = currentSlideIndex - 1;
     setCurrentSlideIndex(prevIndex);
 
-    // Load previous slide's saved transcript if available
     const state = useSessionStore.getState();
     const prevAnswer = state.slideAnswers.find((a) => a.slideIndex === prevIndex);
     if (prevAnswer && prevAnswer.transcript !== '(No speech recorded)') {

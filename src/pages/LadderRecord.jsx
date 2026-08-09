@@ -67,7 +67,7 @@ export default function LadderRecord() {
       setElapsed(0);
 
       const aiData = await fetchLadderQuestion(ladderDomain, ladderLevel, askedQuestionsRef.current);
-      
+
       if (isMounted) {
         if (aiData && aiData.questionText) {
           setQuestionText(aiData.questionText);
@@ -98,9 +98,7 @@ export default function LadderRecord() {
 
     createRecognition({
       onResult: ({ finalText, interimText }) => {
-        if (finalText) {
-          setTranscript((prev) => (prev ? prev + ' ' + finalText : finalText));
-        }
+        setTranscript(finalText);
         setInterim(interimText || '');
       },
       onError: (err) => {

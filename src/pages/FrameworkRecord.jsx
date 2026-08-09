@@ -43,9 +43,7 @@ export default function FrameworkRecord() {
 
     createRecognition({
       onResult: ({ finalText, interimText }) => {
-        if (finalText) {
-          setTranscript((prev) => (prev ? prev + ' ' + finalText : finalText));
-        }
+        setTranscript(finalText);
         setInterim(interimText || '');
       },
       onError: (err) => {
@@ -106,13 +104,12 @@ export default function FrameworkRecord() {
     }
   };
 
-  // Navigate to Previous Step (CRITICAL USER REQUEST)
+  // Navigate to Previous Step
   const handlePreviousStep = () => {
     if (currentFrameworkStep <= 0) return;
     stopListening();
     setIsRecording(false);
 
-    // Save current step progress before leaving
     const fullTranscript = (transcript + ' ' + interim).trim();
     if (fullTranscript || elapsed > 0) {
       const duration = elapsed || 1;
@@ -130,7 +127,6 @@ export default function FrameworkRecord() {
     const prevIndex = currentFrameworkStep - 1;
     setCurrentFrameworkStep(prevIndex);
 
-    // Load previous step's saved transcript if available
     const state = useSessionStore.getState();
     const prevAnswer = state.frameworkAnswers.find((a) => a.stepIndex === prevIndex);
     if (prevAnswer && prevAnswer.transcript !== '(No speech recorded)') {
