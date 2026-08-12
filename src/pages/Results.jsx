@@ -23,14 +23,14 @@ function formatPolishedHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent font-sans text-[16px] font-semibold block mt-4 mb-1">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-accent font-sans text-[15px] font-semibold block mt-3 mb-1">$1</strong>')
     .replace(/^• (.*$)/gm, '<li class="ml-4 list-disc text-text2 my-1">$1</li>');
 }
 
 export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
-  const [activeTab, setActiveTab] = useState('transcript');
+  const [activeTab, setActiveTab] = useState('compare'); // Default: Side-by-side comparison ↔
   const [expandedQuestion, setExpandedQuestion] = useState(0);
   const [copied, setCopied] = useState(false);
 
@@ -106,7 +106,7 @@ export default function Results() {
       </div>
 
       {/* 2-Column Split Dashboard Layout */}
-      <div className="grid grid-cols-[40%_60%] gap-8 items-start max-[900px]:grid-cols-1">
+      <div className="grid grid-cols-[38%_62%] gap-7 items-start max-[900px]:grid-cols-1">
         {/* LEFT COLUMN: Score Hero & 6 Metrics Grid */}
         <div className="flex flex-col gap-6">
           <ScoreHero score={metrics.overall} context={context} duration={fmt(durationSecs)} note={note} />
@@ -126,7 +126,7 @@ export default function Results() {
           </button>
         </div>
 
-        {/* RIGHT COLUMN: Structural Blueprint & Question/Framework Breakdown & Polished Script */}
+        {/* RIGHT COLUMN: Structural Blueprint, Question Breakdown & SIDE-BY-SIDE TRANSCRIPT COMPARISON */}
         <div className="flex flex-col gap-6">
           {/* Structural Thought Blueprint Mapping Card */}
           {structuralMapping && (
@@ -226,41 +226,101 @@ export default function Results() {
             </div>
           )}
 
-          {/* Transcript / Polished Script Tab Box */}
-          <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
-            {/* Tabs */}
-            <div className="flex items-center justify-between border-b border-b-border mb-6">
-              <div className="flex gap-0">
-                {['transcript', 'polished'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-[12px] tracking-[0.1em] uppercase py-2.5 mr-7 cursor-pointer border-none border-b-[1.5px] bg-transparent font-sans font-light transition-all duration-[180ms]
-                      ${activeTab === tab ? 'text-accent border-b-accent font-medium' : 'text-text3 border-b-transparent'}`}
-                  >
-                    {tab === 'transcript' ? 'Full Session Transcript' : 'Authentic De-Cluttered Version'}
-                  </button>
-                ))}
+          {/* SIDE-BY-SIDE TRANSCRIPT COMPARISON SUITE */}
+          <div className="bg-surface border border-border-md rounded-2xl p-6 max-[600px]:p-4 shadow-xl">
+            {/* View Mode Selector */}
+            <div className="flex items-center justify-between border-b border-border/60 pb-4 mb-5 flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setActiveTab('compare')}
+                  className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+                    activeTab === 'compare'
+                      ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
+                      : 'bg-transparent border-border text-text3 hover:text-text'
+                  }`}
+                >
+                  ↔ Side-by-Side Comparison
+                </button>
+                <button
+                  onClick={() => setActiveTab('transcript')}
+                  className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+                    activeTab === 'transcript'
+                      ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
+                      : 'bg-transparent border-border text-text3 hover:text-text'
+                  }`}
+                >
+                  🎙️ Original Only
+                </button>
+                <button
+                  onClick={() => setActiveTab('polished')}
+                  className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+                    activeTab === 'polished'
+                      ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
+                      : 'bg-transparent border-border text-text3 hover:text-text'
+                  }`}
+                >
+                  ✨ De-Cluttered Only
+                </button>
               </div>
 
-              {activeTab === 'polished' && polishedScript && (
+              {polishedScript && (
                 <button
                   onClick={handleCopyPolished}
-                  className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium pb-1"
+                  className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium"
                 >
                   📋 {copied ? 'Copied!' : 'Copy Script'}
                 </button>
               )}
             </div>
 
-            {/* Tab content */}
+            {/* TAB 1: SIDE-BY-SIDE COMPARISON (DEFAULT) */}
+            {activeTab === 'compare' && (
+              <div className="grid grid-cols-2 gap-4 max-[720px]:grid-cols-1">
+                {/* Left: Original Spoken Transcript */}
+                <div className="p-4 bg-surface2/50 border border-border rounded-xl flex flex-col justify-between">
+                  <div>
+                    <div className="text-[10px] tracking-[0.16em] uppercase text-text3 font-semibold mb-2.5 flex items-center justify-between border-b border-border/40 pb-2">
+                      <span className="flex items-center gap-1.5">🎙️ Original Spoken Speech</span>
+                      <span className="text-[9px] text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full font-normal">(Raw + Fillers)</span>
+                    </div>
+                    <div
+                      className="text-[14px] leading-[1.8] text-text2 font-sans max-h-[440px] overflow-y-auto pr-1.5 whitespace-pre-wrap text-left"
+                      dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript recorded.' }}
+                    />
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-border/40 text-[10px] text-text3 italic">
+                    Highlighted words show verbal fillers & pauses
+                  </div>
+                </div>
+
+                {/* Right: Authentic De-Cluttered Version */}
+                <div className="p-4 bg-surface2/50 border border-accent/30 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <div className="text-[10px] tracking-[0.16em] uppercase text-accent font-semibold mb-2.5 flex items-center justify-between border-b border-border/40 pb-2">
+                      <span className="flex items-center gap-1.5">✨ Authentic De-Cluttered</span>
+                      <span className="text-[9px] text-accent bg-accent/15 border border-accent/30 px-2 py-0.5 rounded-full font-normal">(Cleaned)</span>
+                    </div>
+                    <div
+                      className="text-[14px] leading-[1.85] text-text font-sans max-h-[440px] overflow-y-auto pr-1.5 whitespace-pre-wrap text-left"
+                      dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating authentic script...' }}
+                    />
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-border/40 text-[10px] text-accent/80 italic">
+                    Preserves 100% of your authentic voice & vocabulary
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: ORIGINAL ONLY */}
             {activeTab === 'transcript' && (
               <div
-                className="text-[15px] leading-[2] text-text2 p-5 bg-surface2/50 border border-border rounded-xl whitespace-pre-wrap font-sans max-h-[460px] overflow-y-auto"
+                className="text-[15px] leading-[2] text-text2 p-5 bg-surface2/50 border border-border rounded-xl whitespace-pre-wrap font-sans max-h-[460px] overflow-y-auto text-left"
                 dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript available.' }}
               />
             )}
 
+            {/* TAB 3: DE-CLUTTERED ONLY */}
             {activeTab === 'polished' && (
               <div className="p-5 bg-surface2/50 border border-border rounded-xl max-h-[460px] overflow-y-auto">
                 <div
