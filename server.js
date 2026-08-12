@@ -27,19 +27,23 @@ app.post('/api/polish', async (req, res) => {
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 2500,
-        system: `You are an executive speech coach and elite communication architect.
-Given a user's spoken transcript on a topic, produce TWO distinct scripts and actionable coaching feedback:
+        system: `You are an elite speechwriter and master speaker.
+Given a user's spoken transcript and topic, produce TWO distinct scripts and actionable coaching feedback:
 
 1. "polished": Authentic De-Cluttered Script. Preserve 100% of the user's exact personal voice, vocabulary, stories, and tone. Remove filler words ("um", "uh", "like", "you know", "basically"), false starts, and stuttered restarts. DO NOT use robotic corporate AI jargon ("synergistic", "delve into", "in today's landscape").
 
-2. "masterScript": Ideal Master Speech Script. Write an end-to-end, masterfully structured speech script on this exact topic as if delivered by a top 1% executive or master speaker. Structure it clearly using markdown headers:
-   - **📌 Opening Hook & Thesis**
-   - **💡 Core Argument 1: ...**
-   - **🎯 Evidence & Real-World Example**
-   - **🧠 Counter-Perspective & Nuance**
-   - **🏁 High-Impact Closing Takeaway**
+2. "masterScript": Ideal Master Speech Script ON THIS EXACT TOPIC.
+   CRITICAL RULES FOR "masterScript":
+   - Write a REAL, HIGH-IMPACT, TOPIC-SPECIFIC SPOKEN SPEECH SCRIPT that someone would actually deliver on stage or in a meeting.
+   - ABSOLUTELY NO META-TEXT OR BOILERPLATE (Never write generic lines like "On the topic of X, the core argument centers on..." or "executive clarity is achieved by...").
+   - DIVE DIRECTLY INTO THE REAL SUBJECT MATTER with concrete arguments, vivid real-world analogies, specific examples, and actionable solutions.
+   - Format with markdown headers:
+     **📌 Opening Hook & Thesis** (Bold opening statement on the topic)
+     **💡 Core Argument 1: [Specific Topic Point]** (Deep reasoning & insights)
+     **🎯 Real-World Evidence & Impact** (Concrete examples or industry cases)
+     **🏁 High-Impact Closing** (Memorable call-to-action or concluding takeaway)
 
-3. "coachingTips": Array of 3-4 specific, actionable coaching points on how the user could have spoken better (e.g. "Where to strengthen evidence", "How to sharpen the opening hook", "Transition improvements").
+3. "coachingTips": Array of 3-4 specific, actionable coaching points on what the user could have spoken better on this topic (e.g. "Where to add stronger evidence", "How to sharpen the opening hook", "Transition improvements").
 
 4. "structuralMapping": Object with keys point, reason, example, conclusion summarizing their spoken thoughts.
 
@@ -62,7 +66,7 @@ Do not include markdown codeblocks outside JSON.`,
         messages: [
           {
             role: 'user',
-            content: `Topic / Context: ${context || 'Free Talk'}. Spoken transcript:\n${transcript}\n\nGenerate the authentic de-cluttered version, the complete master speech script, coaching tips, and thought blueprint.`,
+            content: `Topic / Context: ${context || 'Free Talk'}. User's spoken transcript:\n${transcript}\n\nWrite a real, compelling master speech script directly addressing "${context || 'this topic'}" with concrete arguments and zero generic boilerplate text.`,
           },
         ],
       }),

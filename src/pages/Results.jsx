@@ -41,6 +41,7 @@ function formatMasterScriptHtml(text) {
 export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
+  const setScriptSetup = useSessionStore((s) => s.setScriptSetup);
   const [activeTab, setActiveTab] = useState('compare'); // Default: Side-by-side comparison ↔
   const [expandedQuestion, setExpandedQuestion] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -73,6 +74,17 @@ export default function Results() {
     navigator.clipboard.writeText(cleanText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRehearseInTeleprompter = (textToUse) => {
+    const clean = getPolishedString(textToUse);
+    if (!clean) return;
+    setScriptSetup({
+      text: clean,
+      title: `Rehearsal: ${context || 'Master Script'}`,
+      paceWpm: 140,
+    });
+    navigate('/script-record');
   };
 
   return (
@@ -228,11 +240,14 @@ export default function Results() {
         {/* TAB 2: IDEAL MASTER SPEECH SCRIPT */}
         {activeTab === 'master' && (
           <div className="p-6 bg-surface2/60 border border-accent/30 rounded-xl max-h-[520px] overflow-y-auto">
-            <div className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold mb-2 flex items-center justify-between border-b border-border/40 pb-3">
+            <div className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold mb-3 flex items-center justify-between border-b border-border/40 pb-3">
               <span>🏆 Ideal Master Speech Script: "{context || 'Topic'}"</span>
-              <span className="text-[9px] bg-accent/15 text-accent border border-accent/30 px-2.5 py-0.5 rounded-full font-normal">
-                Structured Executive Blueprint
-              </span>
+              <button
+                onClick={() => handleRehearseInTeleprompter(masterScript || polishedScript)}
+                className="bg-accent text-[#0e0e0d] border-none rounded-lg px-4 py-1.5 text-[11px] font-semibold cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-sm inline-flex items-center gap-1.5"
+              >
+                📜 Rehearse in Teleprompter →
+              </button>
             </div>
             {masterScript ? (
               <div
@@ -281,10 +296,7 @@ export default function Results() {
                 <div className="text-[12px] text-text3">Load the master script into the Script Teleprompter suite.</div>
               </div>
               <button
-                onClick={() => {
-                  useSessionStore.getState().setScriptText(masterScript || polishedScript);
-                  navigate('/script-setup');
-                }}
+                onClick={() => handleRehearseInTeleprompter(masterScript || polishedScript)}
                 className="bg-accent text-[#0e0e0d] border-none rounded-lg px-5 py-2.5 text-[12px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-sm"
               >
                 📜 Rehearse in Teleprompter →

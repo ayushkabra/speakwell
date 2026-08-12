@@ -2,6 +2,19 @@
  * apiClient.js — calls to the Express proxy for Claude API with reliable fallback
  */
 
+function buildTopicMasterScript(transcript, context) {
+  const topic = context || 'the topic';
+  const cleanTranscript = (transcript || '').replace(/[\r\n]+/g, ' ').trim();
+  const sentences = cleanTranscript.split(/[.!?]+/).map((s) => s.trim()).filter((s) => s.length > 10);
+
+  const mainPoint = sentences[0] || `When addressing ${topic}, clarity comes from taking a definitive stance.`;
+  const supportingReason = sentences[1] || `The primary driver behind this is ensuring alignment between core vision and execution.`;
+  const evidence = sentences[2] || `For example, leading teams that prioritize real outcomes consistently outperform rigid organizations.`;
+  const takeaway = sentences[sentences.length - 1] || `Focus on clear priorities, measure real impact, and keep communication direct.`;
+
+  return `**📌 Opening Hook & Thesis**\n${mainPoint}\n\n**💡 Core Argument: Strategic Focus**\n${supportingReason} When addressing ${topic}, effective speakers avoid fluff and deliver direct, actionable reasoning.\n\n**🎯 Real-World Evidence & Impact**\n${evidence}\n\n**🏁 High-Impact Closing**\n${takeaway}`;
+}
+
 export async function polishTranscript(transcript, context) {
   try {
     let res = await fetch('/api/polish', {
@@ -23,7 +36,7 @@ export async function polishTranscript(transcript, context) {
 
     return {
       polished: data.polished || transcript,
-      masterScript: data.masterScript || '',
+      masterScript: data.masterScript || buildTopicMasterScript(transcript, context),
       coachingTips: data.coachingTips || [],
       structuralMapping: data.structuralMapping || null,
       strongestPoint: data.strongestPoint || null,
@@ -42,7 +55,7 @@ export async function polishTranscript(transcript, context) {
 
     return {
       polished: pol,
-      masterScript: `**📌 Opening Hook & Thesis**\nOn the topic of "${context || 'this speech'}", the core argument centers on providing clear, structured reasoning without verbal friction.\n\n**💡 Core Argument**\nWhen communicating key ideas, executive clarity is achieved by stating your main point upfront, grounding it in a real-world example, and addressing potential counter-arguments directly.\n\n**🏁 High-Impact Closing**\nConclude by reinforcing the primary takeaway and giving your audience a clear, memorable call-to-action.`,
+      masterScript: buildTopicMasterScript(pol, context),
       coachingTips: [
         'Open with a punchier thesis statement in your first 10 seconds.',
         'Use explicit transition markers (e.g. "The primary reason for this is...", "For example...") to boost clarity.',
