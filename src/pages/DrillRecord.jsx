@@ -202,11 +202,15 @@ export default function DrillRecord() {
       await delay(700);
       setProcessingStep(3);
 
-      let polished = '';
+      let polishResult = { polished: '', structuralMapping: null, strongestPoint: null };
       if (combinedTranscript.length > 15) {
-        polished = await polishTranscript(combinedTranscript, 'Question Drill Practice Session');
+        polishResult = await polishTranscript(combinedTranscript, 'Question Drill Practice Session');
       } else {
-        polished = 'Drill answers were too brief for a full polished script rewrite.';
+        polishResult = {
+          polished: 'Drill answers were too brief for a full polished script rewrite.',
+          structuralMapping: null,
+          strongestPoint: null,
+        };
       }
 
       await delay(500);
@@ -219,7 +223,9 @@ export default function DrillRecord() {
         drillAnswers: allAnswers,
         rawTranscript: combinedTranscript,
         annotatedTranscript: annotateTranscript(combinedTranscript),
-        polishedScript: polished,
+        polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || combinedTranscript),
+        structuralMapping: polishResult.structuralMapping || null,
+        strongestPoint: polishResult.strongestPoint || null,
         durationSecs: totalSecs,
         metrics: overallMetrics,
       });

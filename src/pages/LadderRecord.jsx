@@ -253,11 +253,15 @@ export default function LadderRecord() {
     await delay(700);
     setProcessingStep(3);
 
-    let polished = '';
+    let polishResult = { polished: '', structuralMapping: null, strongestPoint: null };
     if (combinedTranscript.length > 15) {
-      polished = await polishTranscript(combinedTranscript, `Topic Ladder: ${ladderDomain}`);
+      polishResult = await polishTranscript(combinedTranscript, `Topic Ladder: ${ladderDomain}`);
     } else {
-      polished = 'Ladder answers were too brief for a full polished script rewrite.';
+      polishResult = {
+        polished: 'Ladder answers were too brief for a full polished script rewrite.',
+        structuralMapping: null,
+        strongestPoint: null,
+      };
     }
 
     await delay(500);
@@ -270,7 +274,9 @@ export default function LadderRecord() {
       drillAnswers: allAnswers,
       rawTranscript: combinedTranscript,
       annotatedTranscript: annotateTranscript(combinedTranscript),
-      polishedScript: polished,
+      polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || combinedTranscript),
+      structuralMapping: polishResult.structuralMapping || null,
+      strongestPoint: polishResult.strongestPoint || null,
       durationSecs: totalSecs,
       metrics: overallMetrics,
     });

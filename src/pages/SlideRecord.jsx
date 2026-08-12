@@ -199,11 +199,15 @@ export default function SlideRecord() {
       await delay(700);
       setProcessingStep(3);
 
-      let polished = '';
+      let polishResult = { polished: '', structuralMapping: null, strongestPoint: null };
       if (combinedTranscript.length > 15) {
-        polished = await polishTranscript(combinedTranscript, `Presentation Slide Deck Rehearsal (${allAnswers.length} Slides)`);
+        polishResult = await polishTranscript(combinedTranscript, `Presentation Slide Deck Rehearsal (${allAnswers.length} Slides)`);
       } else {
-        polished = 'Slide pitch answers were too brief for a full executive script rewrite.';
+        polishResult = {
+          polished: 'Slide pitch answers were too brief for a full executive script rewrite.',
+          structuralMapping: null,
+          strongestPoint: null,
+        };
       }
 
       await delay(500);
@@ -216,7 +220,9 @@ export default function SlideRecord() {
         drillAnswers: allAnswers,
         rawTranscript: combinedTranscript,
         annotatedTranscript: annotateTranscript(combinedTranscript),
-        polishedScript: polished,
+        polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || combinedTranscript),
+        structuralMapping: polishResult.structuralMapping || null,
+        strongestPoint: polishResult.strongestPoint || null,
         durationSecs: totalSecs,
         metrics: overallMetrics,
       });

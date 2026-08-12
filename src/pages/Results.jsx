@@ -9,9 +9,17 @@ function fmt(s) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-function formatPolishedHtml(text) {
+function getPolishedString(text) {
   if (!text) return '';
-  return text
+  if (typeof text === 'string') return text;
+  if (typeof text === 'object' && text.polished) return String(text.polished);
+  return String(text);
+}
+
+function formatPolishedHtml(text) {
+  const str = getPolishedString(text);
+  if (!str) return '';
+  return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -49,8 +57,9 @@ export default function Results() {
   const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   const handleCopyPolished = () => {
-    if (!polishedScript) return;
-    const cleanText = polishedScript.replace(/\*\*/g, '');
+    const str = getPolishedString(polishedScript);
+    if (!str) return;
+    const cleanText = str.replace(/\*\*/g, '');
     navigator.clipboard.writeText(cleanText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
