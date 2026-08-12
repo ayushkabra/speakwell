@@ -166,12 +166,14 @@ export default function Record() {
 
     setProcessingStep(3);
     const ctx = customContext || selectedContext || 'Free Talk';
-    let polishResult = { polished: '', structuralMapping: null, strongestPoint: null };
+    let polishResult = { polished: '', masterScript: '', coachingTips: [], structuralMapping: null, strongestPoint: null };
     if (raw.length > 15) {
       polishResult = await polishTranscript(raw, ctx);
     } else {
       polishResult = {
         polished: 'Your recording was too short. Try speaking for at least 15–20 seconds.',
+        masterScript: '',
+        coachingTips: [],
         structuralMapping: null,
         strongestPoint: null,
       };
@@ -189,6 +191,8 @@ export default function Record() {
       rawTranscript: raw,
       annotatedTranscript: annotateTranscript(raw),
       polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || raw),
+      masterScript: polishResult.masterScript || '',
+      coachingTips: polishResult.coachingTips || [],
       structuralMapping: polishResult.structuralMapping || null,
       strongestPoint: polishResult.strongestPoint || null,
       metrics,

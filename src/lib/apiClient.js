@@ -23,6 +23,8 @@ export async function polishTranscript(transcript, context) {
 
     return {
       polished: data.polished || transcript,
+      masterScript: data.masterScript || '',
+      coachingTips: data.coachingTips || [],
       structuralMapping: data.structuralMapping || null,
       strongestPoint: data.strongestPoint || null,
     };
@@ -40,6 +42,12 @@ export async function polishTranscript(transcript, context) {
 
     return {
       polished: pol,
+      masterScript: `**📌 Opening Hook & Thesis**\nOn the topic of "${context || 'this speech'}", the core argument centers on providing clear, structured reasoning without verbal friction.\n\n**💡 Core Argument**\nWhen communicating key ideas, executive clarity is achieved by stating your main point upfront, grounding it in a real-world example, and addressing potential counter-arguments directly.\n\n**🏁 High-Impact Closing**\nConclude by reinforcing the primary takeaway and giving your audience a clear, memorable call-to-action.`,
+      coachingTips: [
+        'Open with a punchier thesis statement in your first 10 seconds.',
+        'Use explicit transition markers (e.g. "The primary reason for this is...", "For example...") to boost clarity.',
+        'Conclude with a high-impact closing takeaway rather than trailing off.',
+      ],
       structuralMapping: {
         point: 'Stated main idea clearly in your authentic voice.',
         reason: 'Provided supporting reasoning without filler distractions.',

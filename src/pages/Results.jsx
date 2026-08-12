@@ -27,6 +27,17 @@ function formatPolishedHtml(text) {
     .replace(/^• (.*$)/gm, '<li class="ml-4 list-disc text-text2 my-1">$1</li>');
 }
 
+function formatMasterScriptHtml(text) {
+  if (!text) return '';
+  const str = String(text);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<h3 class="font-serif text-[18px] text-accent font-normal mt-5 mb-2 border-b border-border/40 pb-1">$1</h3>')
+    .replace(/^• (.*$)/gm, '<li class="ml-4 list-disc text-text2 my-1.5">$1</li>');
+}
+
 export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
@@ -48,7 +59,7 @@ export default function Results() {
     );
   }
 
-  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, structuralMapping, strongestPoint, drillAnswers, sessionType } = session;
+  const { metrics, context, durationSecs, rawTranscript, annotatedTranscript, polishedScript, masterScript, coachingTips, structuralMapping, strongestPoint, drillAnswers, sessionType } = session;
   const note = getScoreNote(metrics);
   const isScript = sessionType === 'script';
   const isFramework = sessionType === 'framework';
@@ -56,10 +67,9 @@ export default function Results() {
   const isLadder = sessionType === 'ladder';
   const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
-  const handleCopyPolished = () => {
-    const str = getPolishedString(polishedScript);
-    if (!str) return;
-    const cleanText = str.replace(/\*\*/g, '');
+  const handleCopyText = (content) => {
+    if (!content) return;
+    const cleanText = String(content).replace(/\*\*/g, '');
     navigator.clipboard.writeText(cleanText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -70,7 +80,7 @@ export default function Results() {
       {/* Copied Toast Notification */}
       {copied && (
         <div className="fixed bottom-6 right-6 bg-accent text-[#0e0e0d] font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 text-[13px] animate-fade-up flex items-center gap-2">
-          <span>✓</span> Polished script copied to clipboard!
+          <span>✓</span> Text copied to clipboard!
         </div>
       )}
 
@@ -110,23 +120,23 @@ export default function Results() {
         <ScoreHero score={metrics.overall} context={context} duration={fmt(durationSecs)} note={note} />
       </div>
 
-      {/* PRIMARY SECTION: SIDE-BY-SIDE TRANSCRIPT COMPARISON SUITE (FRONT & CENTER) */}
+      {/* PRIMARY SECTION: SIDE-BY-SIDE TRANSCRIPT & MASTER SPEECH SUITE */}
       <div className="bg-surface border border-border-md rounded-2xl p-6 max-[600px]:p-4 shadow-xl mb-8">
         {/* Header & View Mode Switcher */}
         <div className="flex items-center justify-between border-b border-border/60 pb-4 mb-5 flex-wrap gap-3">
           <div>
             <div className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold mb-1">
-              SIDE-BY-SIDE TRANSCRIPT COMPARISON ↔
+              SPEECH ANALYSIS & MASTER REHEARSAL SUITE 🏆
             </div>
             <div className="text-[13px] text-text3">
-              Compare your exact spoken speech against the authentic de-cluttered version.
+              Compare your spoken speech, view authentic polish, or study an ideal master speech script.
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setActiveTab('compare')}
-              className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+              className={`text-[11px] tracking-[0.1em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
                 activeTab === 'compare'
                   ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
                   : 'bg-transparent border-border text-text3 hover:text-text'
@@ -135,8 +145,28 @@ export default function Results() {
               ↔ Side-by-Side Comparison
             </button>
             <button
+              onClick={() => setActiveTab('master')}
+              className={`text-[11px] tracking-[0.1em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+                activeTab === 'master'
+                  ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
+                  : 'bg-transparent border-border text-text3 hover:text-text'
+              }`}
+            >
+              🏆 Ideal Master Speech Script
+            </button>
+            <button
+              onClick={() => setActiveTab('coaching')}
+              className={`text-[11px] tracking-[0.1em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+                activeTab === 'coaching'
+                  ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
+                  : 'bg-transparent border-border text-text3 hover:text-text'
+              }`}
+            >
+              💡 How To Speak Better
+            </button>
+            <button
               onClick={() => setActiveTab('transcript')}
-              className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
+              className={`text-[11px] tracking-[0.1em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
                 activeTab === 'transcript'
                   ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
                   : 'bg-transparent border-border text-text3 hover:text-text'
@@ -144,25 +174,13 @@ export default function Results() {
             >
               🎙️ Original Only
             </button>
-            <button
-              onClick={() => setActiveTab('polished')}
-              className={`text-[11px] tracking-[0.12em] uppercase px-3.5 py-1.5 rounded-lg border cursor-pointer font-sans transition-all duration-[180ms] ${
-                activeTab === 'polished'
-                  ? 'bg-accent/15 border-accent/40 text-accent font-semibold shadow-sm'
-                  : 'bg-transparent border-border text-text3 hover:text-text'
-              }`}
-            >
-              ✨ De-Cluttered Only
-            </button>
 
-            {polishedScript && (
-              <button
-                onClick={handleCopyPolished}
-                className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium ml-2"
-              >
-                📋 {copied ? 'Copied!' : 'Copy Script'}
-              </button>
-            )}
+            <button
+              onClick={() => handleCopyText(activeTab === 'master' ? masterScript : polishedScript)}
+              className="text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 font-medium ml-2"
+            >
+              📋 {copied ? 'Copied!' : 'Copy Script'}
+            </button>
           </div>
         </div>
 
@@ -207,22 +225,80 @@ export default function Results() {
           </div>
         )}
 
-        {/* TAB 2: ORIGINAL ONLY */}
+        {/* TAB 2: IDEAL MASTER SPEECH SCRIPT */}
+        {activeTab === 'master' && (
+          <div className="p-6 bg-surface2/60 border border-accent/30 rounded-xl max-h-[520px] overflow-y-auto">
+            <div className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold mb-2 flex items-center justify-between border-b border-border/40 pb-3">
+              <span>🏆 Ideal Master Speech Script: "{context || 'Topic'}"</span>
+              <span className="text-[9px] bg-accent/15 text-accent border border-accent/30 px-2.5 py-0.5 rounded-full font-normal">
+                Structured Executive Blueprint
+              </span>
+            </div>
+            {masterScript ? (
+              <div
+                className="font-sans text-[15px] leading-[1.85] text-text text-left"
+                dangerouslySetInnerHTML={{ __html: formatMasterScriptHtml(masterScript) }}
+              />
+            ) : (
+              <div className="p-8 text-center text-text3 italic text-[14px]">
+                Generating master speech script for "{context}"...
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: HOW TO SPEAK BETTER (COACHING BLUEPRINT) */}
+        {activeTab === 'coaching' && (
+          <div className="p-6 bg-surface2/60 border border-border rounded-xl">
+            <div className="text-[10px] tracking-[0.18em] uppercase text-accent font-semibold mb-4 flex items-center justify-between border-b border-border/40 pb-3">
+              <span>💡 Executive Speech Coaching & Delivery Blueprint</span>
+              <span className="text-[10px] text-text3">Actionable Improvements</span>
+            </div>
+
+            <div className="flex flex-col gap-3.5 mb-6">
+              {coachingTips && coachingTips.length > 0 ? (
+                coachingTips.map((tip, idx) => (
+                  <div key={idx} className="p-4 bg-surface border border-border/80 rounded-xl flex items-start gap-3 shadow-sm">
+                    <span className="w-6 h-6 rounded-full bg-accent/20 text-accent font-serif text-[12px] flex items-center justify-center font-bold shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <div className="text-[14px] text-text leading-[1.6]">
+                      {tip}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 bg-surface border border-border rounded-xl text-[14px] text-text2">
+                  💡 <strong>Focus Tip:</strong> Open with a clear thesis in your first 15 seconds, ground your argument with concrete evidence, and conclude with a strong wrap-up takeaway.
+                </div>
+              )}
+            </div>
+
+            {/* Quick Link to Rehearse Master Script */}
+            <div className="p-4 bg-accent/10 border border-accent/25 rounded-xl flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <div className="text-[13px] font-medium text-text">Want to rehearse the ideal master script with a teleprompter?</div>
+                <div className="text-[12px] text-text3">Load the master script into the Script Teleprompter suite.</div>
+              </div>
+              <button
+                onClick={() => {
+                  useSessionStore.getState().setScriptText(masterScript || polishedScript);
+                  navigate('/script-setup');
+                }}
+                className="bg-accent text-[#0e0e0d] border-none rounded-lg px-5 py-2.5 text-[12px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-sm"
+              >
+                📜 Rehearse in Teleprompter →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ORIGINAL ONLY */}
         {activeTab === 'transcript' && (
           <div
             className="text-[15px] leading-[2] text-text2 p-5 bg-surface2/50 border border-border rounded-xl whitespace-pre-wrap font-sans max-h-[480px] overflow-y-auto text-left"
             dangerouslySetInnerHTML={{ __html: annotatedTranscript || rawTranscript || 'No transcript available.' }}
           />
-        )}
-
-        {/* TAB 3: DE-CLUTTERED ONLY */}
-        {activeTab === 'polished' && (
-          <div className="p-5 bg-surface2/50 border border-border rounded-xl max-h-[480px] overflow-y-auto">
-            <div
-              className="font-sans text-[15px] leading-[1.85] text-text whitespace-pre-wrap text-left"
-              dangerouslySetInnerHTML={{ __html: formatPolishedHtml(polishedScript) || 'Generating authentic script...' }}
-            />
-          </div>
         )}
       </div>
 

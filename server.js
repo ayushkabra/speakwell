@@ -11,7 +11,7 @@ app.use(express.json({ limit: '5mb' }));
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-// POST /api/polish — generate structured authentic polished script & thought blueprint mapping
+// POST /api/polish — generate authentic script, master speech script, coaching tips, & thought blueprint
 app.post('/api/polish', async (req, res) => {
   try {
     const { transcript, context } = req.body;
@@ -26,34 +26,43 @@ app.post('/api/polish', async (req, res) => {
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 2048,
-        system: `You are an authentic speech guide and communication architect.
-Your goal is to hear the user's spoken thoughts, preserve 100% of their authentic personal voice, vocabulary, and intent, while removing verbal clutter and revealing the clean mental structure of their ideas.
+        max_tokens: 2500,
+        system: `You are an executive speech coach and elite communication architect.
+Given a user's spoken transcript on a topic, produce TWO distinct scripts and actionable coaching feedback:
 
-CRITICAL VOICE & AUTHENTICITY RULES:
-1. PRESERVE THE USER'S EXACT WORDS, STORIES, PERSONAL PHRASING, AND TONE. Do not fabricate new facts or change their personal style.
-2. DO NOT USE ROBOTIC CORPORATE AI JARGON ("in today's fast-paced landscape", "synergistic", "delve into", "leverage"). Keep it 100% natural and authentic to the user.
-3. STRIP VERBAL CLUTTER: Remove fillers ("um", "uh", "like", "you know", "basically", "matlab", "arre"), false starts, stuttered restarts, and trailing thoughts.
-4. STRUCTURE:
-   - For Question Drills / Slide Decks / Frameworks: Keep clear headers (e.g. **Question 1: ...** or **Slide 1: ...**) with clean spoken answers.
-   - For Free Talk: Organize into punchy, articulate paragraphs with a strong opening hook and clear closing statement.
+1. "polished": Authentic De-Cluttered Script. Preserve 100% of the user's exact personal voice, vocabulary, stories, and tone. Remove filler words ("um", "uh", "like", "you know", "basically"), false starts, and stuttered restarts. DO NOT use robotic corporate AI jargon ("synergistic", "delve into", "in today's landscape").
+
+2. "masterScript": Ideal Master Speech Script. Write an end-to-end, masterfully structured speech script on this exact topic as if delivered by a top 1% executive or master speaker. Structure it clearly using markdown headers:
+   - **📌 Opening Hook & Thesis**
+   - **💡 Core Argument 1: ...**
+   - **🎯 Evidence & Real-World Example**
+   - **🧠 Counter-Perspective & Nuance**
+   - **🏁 High-Impact Closing Takeaway**
+
+3. "coachingTips": Array of 3-4 specific, actionable coaching points on how the user could have spoken better (e.g. "Where to strengthen evidence", "How to sharpen the opening hook", "Transition improvements").
+
+4. "structuralMapping": Object with keys point, reason, example, conclusion summarizing their spoken thoughts.
+
+5. "strongestPoint": The single most compelling sentence from their original speech.
 
 Return ONLY a raw JSON object with keys:
 {
-  "polished": "The de-cluttered authentic script preserving the user's exact words",
+  "polished": "string",
+  "masterScript": "string",
+  "coachingTips": ["string", "string", "string"],
   "structuralMapping": {
-    "point": "One-sentence summary of the core point stated by the user",
-    "reason": "The main rationale or justification provided",
-    "example": "The supporting detail, story, or evidence mentioned",
-    "conclusion": "The concluding takeaway or action item"
+    "point": "string",
+    "reason": "string",
+    "example": "string",
+    "conclusion": "string"
   },
-  "strongestPoint": "The single most compelling or punchy sentence from their speech"
+  "strongestPoint": "string"
 }
-Do not include markdown codeblocks or extra text outside JSON.`,
+Do not include markdown codeblocks outside JSON.`,
         messages: [
           {
             role: 'user',
-            content: `Context: ${context || 'Free Talk'}. Raw spoken transcript:\n${transcript}\n\nDe-clutter and structure this while keeping 100% of the user's authentic voice.`,
+            content: `Topic / Context: ${context || 'Free Talk'}. Spoken transcript:\n${transcript}\n\nGenerate the authentic de-cluttered version, the complete master speech script, coaching tips, and thought blueprint.`,
           },
         ],
       }),
@@ -77,6 +86,8 @@ Do not include markdown codeblocks or extra text outside JSON.`,
 
     res.json({
       polished: parsed.polished || rawContent,
+      masterScript: parsed.masterScript || '',
+      coachingTips: parsed.coachingTips || [],
       structuralMapping: parsed.structuralMapping || null,
       strongestPoint: parsed.strongestPoint || null,
     });
