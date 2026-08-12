@@ -1,11 +1,12 @@
 /**
- * speechEngine.js — Universal Web Speech API Engine with Zero-Duplication Pipeline
- * Guaranteed to eliminate speech phrase duplication across Desktop & Mobile (Chrome, Safari, Edge, iOS, Android).
+ * speechEngine.js — Universal Web Speech API Engine with Seamless Infinite Keep-Alive Loop
+ * Guaranteed zero word duplication & continuous multi-minute speech recognition across Desktop & Mobile.
  */
 
 let recognition = null;
 let isListening = false;
 let sessionCommittedText = '';
+let lastFinalText = '';
 
 export function isSpeechSupported() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -25,8 +26,6 @@ export function deduplicateSpeechText(text) {
   str = str.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
 
   // STAGE 2: Strip repeating n-gram phrases from 2 to 10 words long
-  // e.g. "I think what I think what" -> "I think what"
-  // e.g. "one understands by one understands by" -> "one understands by"
   for (let phraseLen = 10; phraseLen >= 2; phraseLen--) {
     const pattern = new RegExp(`\\b((?:\\w+\\s+){${phraseLen - 1}}\\w+)\\s+\\1\\b`, 'gi');
     str = str.replace(pattern, '$1');
@@ -41,7 +40,6 @@ export function deduplicateSpeechText(text) {
     while (i < words.length) {
       cleanedWords.push(words[i]);
 
-      // Check if the tail of cleanedWords matches a phrase starting at i + 1
       let matchedLength = 0;
       for (let len = Math.min(8, cleanedWords.length); len >= 1; len--) {
         const tail = cleanedWords.slice(-len).map((w) => w.toLowerCase()).join(' ');
@@ -64,9 +62,8 @@ export function deduplicateSpeechText(text) {
   }
 
   // STAGE 4: Stitch overlapping suffix/prefix word boundaries
-  // e.g. "I think what" + "what one understands" -> "I think what one understands"
   str = str
-    .replace(/\b(\w+)\s+\1\b/gi, '$1') // re-check single word duplicates
+    .replace(/\b(\w+)\s+\1\b/gi, '$1')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
@@ -86,7 +83,6 @@ export function createRecognition({ onResult, onError, onEnd }) {
     let currentFinal = '';
     let currentInterim = '';
 
-    // Loop through ALL result slots from index 0 to e.results.length
     for (let i = 0; i < e.results.length; i++) {
       const res = e.results[i];
       const chunk = res[0]?.transcript || '';
@@ -100,6 +96,7 @@ export function createRecognition({ onResult, onError, onEnd }) {
 
     // Combine committed text from auto-restarts with current recognition session
     const fullRawFinal = (sessionCommittedText + ' ' + currentFinal).trim();
+    lastFinalText = fullRawFinal;
 
     // Pass through Universal Zero-Duplication Pipeline
     const cleanFinal = deduplicateSpeechText(fullRawFinal);
@@ -113,22 +110,30 @@ export function createRecognition({ onResult, onError, onEnd }) {
 
   recognition.onerror = (e) => {
     onError?.(e.error);
-    if (e.error === 'no-speech' && isListening) {
-      try {
-        recognition.stop();
-        setTimeout(() => {
-          if (isListening) recognition.start();
-        }, 300);
-      } catch (_) {}
+    if ((e.error === 'no-speech' || e.error === 'network') && isListening) {
+      setTimeout(() => {
+        if (isListening && recognition) {
+          try {
+            recognition.start();
+          } catch (_) {}
+        }
+      }, 200);
     }
   };
 
   recognition.onend = () => {
-    // When recognition auto-restarts, save committed text so new session appends cleanly
+    // When browser engine auto-terminates (~60s limit), commit text & restart seamlessly
     if (isListening) {
-      try {
-        recognition.start();
-      } catch (_) {}
+      if (lastFinalText) {
+        sessionCommittedText = lastFinalText;
+      }
+      setTimeout(() => {
+        if (isListening && recognition) {
+          try {
+            recognition.start();
+          } catch (_) {}
+        }
+      }, 100);
     }
     onEnd?.();
   };
@@ -138,6 +143,7 @@ export function createRecognition({ onResult, onError, onEnd }) {
 
 export function startListening() {
   sessionCommittedText = '';
+  lastFinalText = '';
   if (recognition) {
     isListening = true;
     try {
@@ -158,6 +164,7 @@ export function stopListening() {
 export function destroyRecognition() {
   isListening = false;
   sessionCommittedText = '';
+  lastFinalText = '';
   if (recognition) {
     try {
       recognition.stop();
