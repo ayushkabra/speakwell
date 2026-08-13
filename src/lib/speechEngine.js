@@ -2,7 +2,7 @@
  * speechEngine.js — Universal Speech Recognition Engine
  * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop)
  * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
- * Continuous 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
+ * Isolated Closure-Scoped 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
@@ -13,9 +13,9 @@ let sessionCommittedText = '';
 let lastFinalText = '';
 
 let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume & rotation segments
-let mediaRecorder = null;
-let audioChunks = [];
 let mediaStream = null;
+let currentSegmentRecorder = null;
+let activeSegmentPromise = null;
 let activeCallbacks = null;
 let segmentRotateTimer = null;
 
@@ -184,64 +184,65 @@ async function sendWhisperChunk(blob, mimeType) {
   });
 }
 
-function startMediaRecorderSegment() {
+function startSegment() {
   if (!mediaStream || !isListening) return;
 
-  try {
-    audioChunks = [];
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-    mediaRecorder = new MediaRecorder(mediaStream, { mimeType });
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+    ? 'audio/webm'
+    : MediaRecorder.isTypeSupported('audio/mp4')
+    ? 'audio/mp4'
+    : 'audio/aac';
 
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) {
-        audioChunks.push(e.data);
-      }
-    };
+  // Closure-scoped private chunks array for this specific recorder instance
+  const instanceChunks = [];
+  const recorder = new MediaRecorder(mediaStream, { mimeType });
 
-    mediaRecorder.start(500);
-
-    // Auto-rotate segment every 45 seconds to keep individual audio blobs ~500KB and preserve valid container headers
-    clearTimeout(segmentRotateTimer);
-    segmentRotateTimer = setTimeout(() => {
-      if (isListening && mediaRecorder && mediaRecorder.state === 'recording') {
-        rotateSegment();
-      }
-    }, 45000);
-  } catch (err) {
-    console.error('Start MediaRecorder segment error:', err);
-  }
-}
-
-async function rotateSegment() {
-  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
-
-  const currentRecorder = mediaRecorder;
-  const currentChunks = [...audioChunks];
-  const mimeType = currentRecorder.mimeType || 'audio/webm';
-
-  // Immediately start new segment so recording isn't interrupted
-  startMediaRecorderSegment();
-
-  // Process completed 45s segment in background
-  const blob = new Blob(currentChunks, { type: mimeType });
-  if (blob.size > 100) {
-    activeCallbacks?.onResult?.({
-      finalText: deduplicateSpeechText(whisperCommittedText),
-      interimText: '⏳ Processing 45s audio segment...',
-    });
-
-    const segmentText = await sendWhisperChunk(blob, mimeType);
-    if (segmentText) {
-      whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
-      const cleanFinal = deduplicateSpeechText(whisperCommittedText);
-      lastFinalText = cleanFinal;
-
-      activeCallbacks?.onResult?.({
-        finalText: cleanFinal,
-        interimText: '🎙️ Continuous recording active...',
-      });
+  recorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) {
+      instanceChunks.push(e.data);
     }
-  }
+  };
+
+  activeSegmentPromise = new Promise((resolve) => {
+    recorder.onstop = async () => {
+      const blob = new Blob(instanceChunks, { type: mimeType });
+      if (blob.size > 100) {
+        try {
+          activeCallbacks?.onResult?.({
+            finalText: deduplicateSpeechText(whisperCommittedText),
+            interimText: '⏳ Transcribing audio segment with Groq Whisper...',
+          });
+
+          const segmentText = await sendWhisperChunk(blob, mimeType);
+          if (segmentText) {
+            whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
+            const cleanFinal = deduplicateSpeechText(whisperCommittedText);
+            lastFinalText = cleanFinal;
+
+            activeCallbacks?.onResult?.({
+              finalText: cleanFinal,
+              interimText: isListening ? '🎙️ Continuous recording active...' : '',
+            });
+          }
+        } catch (err) {
+          console.warn('Segment Whisper error:', err);
+        }
+      }
+      resolve(deduplicateSpeechText(whisperCommittedText));
+    };
+  });
+
+  currentSegmentRecorder = recorder;
+  recorder.start(500);
+
+  // Auto-rotate segment every 45s: stop current recorder cleanly (triggering its onstop handler) & start fresh segment
+  clearTimeout(segmentRotateTimer);
+  segmentRotateTimer = setTimeout(() => {
+    if (isListening && currentSegmentRecorder === recorder && recorder.state === 'recording') {
+      recorder.stop(); // Stops this instance cleanly, firing its onstop handler
+      startSegment();  // Starts a fresh recorder instance with its own isolated chunks array
+    }
+  }, 45000);
 }
 
 export async function startListening(isNewSession = false) {
@@ -265,7 +266,7 @@ export async function startListening(isNewSession = false) {
       if (!mediaStream) {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
-      startMediaRecorderSegment();
+      startSegment();
 
       activeCallbacks?.onResult?.({
         finalText: deduplicateSpeechText(whisperCommittedText),
@@ -289,49 +290,17 @@ export async function stopListening() {
     return deduplicateSpeechText(lastFinalText);
   }
 
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    return new Promise((resolve) => {
-      mediaRecorder.onstop = async () => {
-        if (mediaStream) {
-          mediaStream.getTracks().forEach((track) => track.stop());
-          mediaStream = null;
-        }
+  if (currentSegmentRecorder && currentSegmentRecorder.state !== 'inactive') {
+    currentSegmentRecorder.stop();
+  }
 
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const finalBlob = new Blob(audioChunks, { type: mimeType });
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
 
-        if (finalBlob.size > 100) {
-          try {
-            activeCallbacks?.onResult?.({
-              finalText: deduplicateSpeechText(whisperCommittedText),
-              interimText: '⏳ Transcribing final audio segment...',
-            });
-
-            const segmentText = await sendWhisperChunk(finalBlob, mimeType);
-            whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
-            const cleanFinal = deduplicateSpeechText(whisperCommittedText);
-            lastFinalText = cleanFinal;
-
-            activeCallbacks?.onResult?.({
-              finalText: cleanFinal,
-              interimText: '',
-            });
-            resolve(cleanFinal);
-          } catch (err) {
-            console.error('Final segment transcription error:', err);
-            resolve(deduplicateSpeechText(whisperCommittedText));
-          }
-        } else {
-          resolve(deduplicateSpeechText(whisperCommittedText));
-        }
-      };
-
-      try {
-        mediaRecorder.stop();
-      } catch (_) {
-        resolve(deduplicateSpeechText(whisperCommittedText));
-      }
-    });
+  if (activeSegmentPromise) {
+    await activeSegmentPromise;
   }
 
   return deduplicateSpeechText(whisperCommittedText || lastFinalText);
@@ -352,11 +321,13 @@ export function destroyRecognition() {
     recognition = null;
   }
 
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+  if (currentSegmentRecorder && currentSegmentRecorder.state !== 'inactive') {
     try {
-      mediaRecorder.stop();
+      currentSegmentRecorder.stop();
     } catch (_) {}
+    currentSegmentRecorder = null;
   }
+
   if (mediaStream) {
     mediaStream.getTracks().forEach((track) => track.stop());
     mediaStream = null;
