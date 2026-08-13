@@ -2,6 +2,7 @@
  * speechEngine.js — Universal Speech Recognition Engine
  * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop)
  * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
+ * Continuous 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
@@ -11,11 +12,12 @@ let isListening = false;
 let sessionCommittedText = '';
 let lastFinalText = '';
 
-let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume segments
+let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume & rotation segments
 let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
 let activeCallbacks = null;
+let segmentRotateTimer = null;
 
 export function isSpeechSupported() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition || (navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
@@ -151,47 +153,6 @@ export function createRecognition({ onResult, onError, onEnd }) {
   };
 }
 
-export async function startListening(isNewSession = false) {
-  if (isNewSession) {
-    sessionCommittedText = '';
-    whisperCommittedText = '';
-    lastFinalText = '';
-  }
-  isListening = true;
-
-  if (recognition) {
-    try {
-      recognition.start();
-    } catch (_) {}
-    return;
-  }
-
-  // MediaRecorder Fallback for Safari & Firefox
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    try {
-      audioChunks = [];
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-      mediaRecorder = new MediaRecorder(mediaStream, { mimeType });
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          audioChunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.start(500);
-      activeCallbacks?.onResult?.({
-        finalText: deduplicateSpeechText(whisperCommittedText),
-        interimText: '🎙️ Recording audio segment (Safari/Firefox Whisper active)...',
-      });
-    } catch (err) {
-      console.error('MediaRecorder start error:', err);
-      activeCallbacks?.onError?.('not-allowed');
-    }
-  }
-}
-
 async function sendWhisperChunk(blob, mimeType) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -223,8 +184,103 @@ async function sendWhisperChunk(blob, mimeType) {
   });
 }
 
+function startMediaRecorderSegment() {
+  if (!mediaStream || !isListening) return;
+
+  try {
+    audioChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+
+    mediaRecorder.start(500);
+
+    // Auto-rotate segment every 45 seconds to keep individual audio blobs ~500KB and preserve valid container headers
+    clearTimeout(segmentRotateTimer);
+    segmentRotateTimer = setTimeout(() => {
+      if (isListening && mediaRecorder && mediaRecorder.state === 'recording') {
+        rotateSegment();
+      }
+    }, 45000);
+  } catch (err) {
+    console.error('Start MediaRecorder segment error:', err);
+  }
+}
+
+async function rotateSegment() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+
+  const currentRecorder = mediaRecorder;
+  const currentChunks = [...audioChunks];
+  const mimeType = currentRecorder.mimeType || 'audio/webm';
+
+  // Immediately start new segment so recording isn't interrupted
+  startMediaRecorderSegment();
+
+  // Process completed 45s segment in background
+  const blob = new Blob(currentChunks, { type: mimeType });
+  if (blob.size > 100) {
+    activeCallbacks?.onResult?.({
+      finalText: deduplicateSpeechText(whisperCommittedText),
+      interimText: '⏳ Processing 45s audio segment...',
+    });
+
+    const segmentText = await sendWhisperChunk(blob, mimeType);
+    if (segmentText) {
+      whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
+      const cleanFinal = deduplicateSpeechText(whisperCommittedText);
+      lastFinalText = cleanFinal;
+
+      activeCallbacks?.onResult?.({
+        finalText: cleanFinal,
+        interimText: '🎙️ Continuous recording active...',
+      });
+    }
+  }
+}
+
+export async function startListening(isNewSession = false) {
+  if (isNewSession) {
+    sessionCommittedText = '';
+    whisperCommittedText = '';
+    lastFinalText = '';
+  }
+  isListening = true;
+
+  if (recognition) {
+    try {
+      recognition.start();
+    } catch (_) {}
+    return;
+  }
+
+  // MediaRecorder Fallback for Safari & Firefox
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      if (!mediaStream) {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      startMediaRecorderSegment();
+
+      activeCallbacks?.onResult?.({
+        finalText: deduplicateSpeechText(whisperCommittedText),
+        interimText: '🎙️ Recording audio (Safari/Firefox Whisper active)...',
+      });
+    } catch (err) {
+      console.error('MediaRecorder start error:', err);
+      activeCallbacks?.onError?.('not-allowed');
+    }
+  }
+}
+
 export async function stopListening() {
   isListening = false;
+  clearTimeout(segmentRotateTimer);
 
   if (recognition) {
     try {
@@ -233,42 +289,25 @@ export async function stopListening() {
     return deduplicateSpeechText(lastFinalText);
   }
 
-  // Stop MediaRecorder and transcribe via Groq Whisper API
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     return new Promise((resolve) => {
       mediaRecorder.onstop = async () => {
         if (mediaStream) {
           mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
         }
 
         const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const fullBlob = new Blob(audioChunks, { type: mimeType });
+        const finalBlob = new Blob(audioChunks, { type: mimeType });
 
-        if (fullBlob.size > 100) {
+        if (finalBlob.size > 100) {
           try {
             activeCallbacks?.onResult?.({
               finalText: deduplicateSpeechText(whisperCommittedText),
-              interimText: '⏳ Transcribing audio segment with Groq Whisper...',
+              interimText: '⏳ Transcribing final audio segment...',
             });
 
-            // Vercel 4.5MB Payload limit safety: slice blob into 3MB chunks if necessary
-            const MAX_CHUNK_SIZE = 3 * 1024 * 1024; // 3MB raw = ~4MB Base64
-            let segmentText = '';
-
-            if (fullBlob.size > MAX_CHUNK_SIZE) {
-              const totalParts = Math.ceil(fullBlob.size / MAX_CHUNK_SIZE);
-              for (let part = 0; part < totalParts; part++) {
-                const start = part * MAX_CHUNK_SIZE;
-                const end = Math.min(fullBlob.size, (part + 1) * MAX_CHUNK_SIZE);
-                const chunkBlob = fullBlob.slice(start, end, mimeType);
-                const textPart = await sendWhisperChunk(chunkBlob, mimeType);
-                segmentText += ' ' + textPart;
-              }
-            } else {
-              segmentText = await sendWhisperChunk(fullBlob, mimeType);
-            }
-
-            // Accumulate segment transcript across pause/resume loops
+            const segmentText = await sendWhisperChunk(finalBlob, mimeType);
             whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
             const cleanFinal = deduplicateSpeechText(whisperCommittedText);
             lastFinalText = cleanFinal;
@@ -279,7 +318,7 @@ export async function stopListening() {
             });
             resolve(cleanFinal);
           } catch (err) {
-            console.error('Whisper transcription error:', err);
+            console.error('Final segment transcription error:', err);
             resolve(deduplicateSpeechText(whisperCommittedText));
           }
         } else {
@@ -300,6 +339,7 @@ export async function stopListening() {
 
 export function destroyRecognition() {
   isListening = false;
+  clearTimeout(segmentRotateTimer);
   sessionCommittedText = '';
   whisperCommittedText = '';
   lastFinalText = '';
