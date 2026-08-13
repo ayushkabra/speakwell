@@ -13,6 +13,11 @@ dist-ssr
 *.local
 .env
 
+# Backups & Temp files
+*.before_unprompted
+*.backup.*
+*.backup
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

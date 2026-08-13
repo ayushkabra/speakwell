@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
 import { createRecognition, isSpeechSupported, startListening, stopListening, destroyRecognition } from '../lib/speechEngine';
-import { computeMetrics, annotateTranscript } from '../lib/metricsEngine';
+import { computeMetrics, annotateTranscript, checkGrammarWithLanguageTool } from '../lib/metricsEngine';
 import { polishTranscript } from '../lib/apiClient';
 import WaveForm from '../components/WaveForm';
 
@@ -35,14 +35,12 @@ export default function DrillRecord() {
   const totalQuestions = drillQuestions.length;
   const isLastQuestion = currentDrillIndex === totalQuestions - 1;
 
-  // Safeguard: Redirect if no questions present
   useEffect(() => {
     if (!drillQuestions || drillQuestions.length === 0) {
       navigate('/drill-setup');
     }
   }, [drillQuestions, navigate]);
 
-  // Setup speech recognition
   useEffect(() => {
     setHasSpeechSupport(isSpeechSupported());
 
@@ -61,7 +59,6 @@ export default function DrillRecord() {
     };
   }, []);
 
-  // Timer logic
   useEffect(() => {
     if (isRecording) {
       timerRef.current = setInterval(() => {
@@ -82,14 +79,12 @@ export default function DrillRecord() {
     return () => clearInterval(timerRef.current);
   }, [isRecording, drillTimerSecs]);
 
-  // Auto scroll live transcript
   useEffect(() => {
     if (liveRef.current) {
       liveRef.current.scrollTop = liveRef.current.scrollHeight;
     }
   }, [transcript, interim]);
 
-  // Start recording
   const handleStart = () => {
     setTranscript('');
     setInterim('');
@@ -99,7 +94,6 @@ export default function DrillRecord() {
     startListening();
   };
 
-  // Restart answer
   const handleRestartAnswer = () => {
     stopListening();
     setIsRecording(false);
@@ -109,7 +103,6 @@ export default function DrillRecord() {
     setTimeRemaining(drillTimerSecs);
   };
 
-  // Toggle record
   const handleToggleRecord = () => {
     if (isRecording) {
       stopListening();
@@ -120,15 +113,15 @@ export default function DrillRecord() {
     }
   };
 
-  // Navigate to Previous Question
-  const handlePreviousQuestion = () => {
-    stopListening();
+  const handlePreviousQuestion = async () => {
+    const whisperResult = await stopListening();
     setIsRecording(false);
 
-    const fullTranscript = (transcript + ' ' + interim).trim();
+    const fullTranscript = (whisperResult || transcript + ' ' + interim).trim();
     if (fullTranscript || elapsed > 0) {
       const duration = elapsed || 1;
-      const metrics = computeMetrics(fullTranscript, duration);
+      const grammarCheck = await checkGrammarWithLanguageTool(fullTranscript);
+      const metrics = computeMetrics(fullTranscript, duration, grammarCheck.matches);
       addDrillAnswer({
         questionIndex: currentDrillIndex,
         questionText: currentQuestion,
@@ -154,14 +147,14 @@ export default function DrillRecord() {
     setTimeRemaining(drillTimerSecs);
   };
 
-  // Move to next question or complete drill
   const handleNextOrFinish = async (skipped = false) => {
-    stopListening();
+    const whisperResult = await stopListening();
     setIsRecording(false);
 
-    const fullTranscript = (transcript + ' ' + interim).trim();
+    const fullTranscript = (whisperResult || transcript + ' ' + interim).trim();
     const duration = elapsed || 1;
-    const metrics = computeMetrics(fullTranscript, duration);
+    const grammarCheck = await checkGrammarWithLanguageTool(fullTranscript);
+    const metrics = computeMetrics(fullTranscript, duration, grammarCheck.matches);
 
     const answerRecord = {
       questionIndex: currentDrillIndex,
@@ -189,9 +182,13 @@ export default function DrillRecord() {
         .join('\n\n');
       const totalSecs = allAnswers.reduce((sum, a) => sum + a.durationSecs, 0);
 
+      const overallGrammar = await checkGrammarWithLanguageTool(
+        allAnswers.map((a) => a.transcript).join(' ')
+      );
       const overallMetrics = computeMetrics(
         allAnswers.map((a) => a.transcript).join(' '),
-        totalSecs
+        totalSecs,
+        overallGrammar.matches
       );
 
       const avgOverall = Math.round(
@@ -222,7 +219,7 @@ export default function DrillRecord() {
         sessionType: 'drill',
         drillAnswers: allAnswers,
         rawTranscript: combinedTranscript,
-        annotatedTranscript: annotateTranscript(combinedTranscript),
+        annotatedTranscript: annotateTranscript(combinedTranscript, overallGrammar.matches),
         polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || combinedTranscript),
         structuralMapping: polishResult.structuralMapping || null,
         strongestPoint: polishResult.strongestPoint || null,
@@ -260,11 +257,8 @@ export default function DrillRecord() {
 
   return (
     <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-16 max-[768px]:px-5">
-      {/* 2-Column Split Dashboard Layout */}
       <div className="grid grid-cols-[44%_56%] gap-8 items-start max-[900px]:grid-cols-1">
-        {/* LEFT COLUMN: Question Card, Timer & Navigation Controls */}
         <div className="flex flex-col gap-5 bg-surface border border-border-md rounded-2xl p-7 shadow-xl">
-          {/* Header Step Counter & Timer */}
           <div className="flex items-center justify-between border-b border-border/60 pb-4">
             <div className="flex items-center gap-2">
               {currentDrillIndex > 0 && (
@@ -302,14 +296,12 @@ export default function DrillRecord() {
             )}
           </div>
 
-          {/* Time's Up Non-Stop Notification */}
           {drillTimerSecs > 0 && timeRemaining === 0 && isRecording && (
             <div className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-[13px] leading-[1.5]">
               ⏱ <strong>Time's up for target pace!</strong> Keep speaking to finish your thought, or click <em>Next Question →</em>.
             </div>
           )}
 
-          {/* Question Display Card */}
           <div className="p-6 bg-surface2/60 border border-border rounded-xl">
             <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
               Current Practice Question
@@ -319,7 +311,6 @@ export default function DrillRecord() {
             </h2>
           </div>
 
-          {/* Action Buttons & Controls */}
           <div className="flex flex-col gap-3 pt-2">
             <div className="flex items-center gap-2 flex-wrap">
               {!isRecording && !transcript ? (
@@ -373,7 +364,6 @@ export default function DrillRecord() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Live Spoken Answer & Streaming Box */}
         <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[460px]">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
@@ -411,7 +401,7 @@ export default function DrillRecord() {
 
           {!hasSpeechSupport && (
             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-[12px] mt-4">
-              ⚠️ Web Speech API requires Chrome or Edge browser.
+              ⚠️ Speech recording ready (Groq Whisper Fallback active).
             </div>
           )}
         </div>

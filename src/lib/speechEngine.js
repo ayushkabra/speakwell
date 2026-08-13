@@ -1,7 +1,10 @@
 /**
- * speechEngine.js — Universal Web Speech API Engine + MediaRecorder Groq Whisper Fallback ($0 Cost)
- * Guaranteed zero word duplication & continuous multi-minute speech recognition across Desktop & Mobile.
+ * speechEngine.js — Universal Speech Recognition Engine
+ * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop)
+ * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
  */
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
 
 let recognition = null;
 let isListening = false;
@@ -10,9 +13,15 @@ let lastFinalText = '';
 
 let mediaRecorder = null;
 let audioChunks = [];
+let mediaStream = null;
+let activeCallbacks = null;
 
 export function isSpeechSupported() {
-  return !!(window.SpeechRecognition || window.webkitSpeechRecognition || navigator.mediaDevices?.getUserMedia);
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition || (navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+}
+
+export function hasNativeSpeechRecognition() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
 /**
@@ -67,90 +76,190 @@ export function deduplicateSpeechText(text) {
 }
 
 export function createRecognition({ onResult, onError, onEnd }) {
+  activeCallbacks = { onResult, onError, onEnd };
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
 
-  recognition = new SR();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
+  if (SR) {
+    recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
-  recognition.onresult = (e) => {
-    let currentFinal = '';
-    let currentInterim = '';
+    recognition.onresult = (e) => {
+      let currentFinal = '';
+      let currentInterim = '';
 
-    for (let i = 0; i < e.results.length; i++) {
-      const res = e.results[i];
-      const chunk = res[0]?.transcript || '';
+      for (let i = 0; i < e.results.length; i++) {
+        const res = e.results[i];
+        const chunk = res[0]?.transcript || '';
 
-      if (res.isFinal) {
-        currentFinal += chunk + ' ';
-      } else {
-        currentInterim += chunk;
-      }
-    }
-
-    const fullRawFinal = (sessionCommittedText + ' ' + currentFinal).trim();
-    lastFinalText = fullRawFinal;
-
-    const cleanFinal = deduplicateSpeechText(fullRawFinal);
-    const cleanInterim = deduplicateSpeechText(currentInterim);
-
-    onResult?.({
-      finalText: cleanFinal,
-      interimText: cleanInterim,
-    });
-  };
-
-  recognition.onerror = (e) => {
-    onError?.(e.error);
-    if ((e.error === 'no-speech' || e.error === 'network') && isListening) {
-      setTimeout(() => {
-        if (isListening && recognition) {
-          try {
-            recognition.start();
-          } catch (_) {}
+        if (res.isFinal) {
+          currentFinal += chunk + ' ';
+        } else {
+          currentInterim += chunk;
         }
-      }, 200);
-    }
-  };
-
-  recognition.onend = () => {
-    if (isListening) {
-      if (lastFinalText) {
-        sessionCommittedText = lastFinalText;
       }
-      setTimeout(() => {
-        if (isListening && recognition) {
-          try {
-            recognition.start();
-          } catch (_) {}
-        }
-      }, 100);
-    }
-    onEnd?.();
-  };
 
-  return recognition;
+      const fullRawFinal = (sessionCommittedText + ' ' + currentFinal).trim();
+      lastFinalText = fullRawFinal;
+
+      const cleanFinal = deduplicateSpeechText(fullRawFinal);
+      const cleanInterim = deduplicateSpeechText(currentInterim);
+
+      onResult?.({
+        finalText: cleanFinal,
+        interimText: cleanInterim,
+      });
+    };
+
+    recognition.onerror = (e) => {
+      onError?.(e.error);
+      if ((e.error === 'no-speech' || e.error === 'network') && isListening) {
+        setTimeout(() => {
+          if (isListening && recognition) {
+            try {
+              recognition.start();
+            } catch (_) {}
+          }
+        }, 200);
+      }
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        if (lastFinalText) {
+          sessionCommittedText = lastFinalText;
+        }
+        setTimeout(() => {
+          if (isListening && recognition) {
+            try {
+              recognition.start();
+            } catch (_) {}
+          }
+        }, 100);
+      }
+      onEnd?.();
+    };
+
+    return recognition;
+  }
+
+  // Fallback for Safari/Firefox: Setup MediaRecorder
+  return {
+    isFallback: true,
+  };
 }
 
-export function startListening() {
+export async function startListening() {
   sessionCommittedText = '';
   lastFinalText = '';
+  isListening = true;
+
   if (recognition) {
-    isListening = true;
     try {
       recognition.start();
     } catch (_) {}
+    return;
+  }
+
+  // MediaRecorder Fallback for Safari & Firefox
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      audioChunks = [];
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.start(500);
+      activeCallbacks?.onResult?.({
+        finalText: '',
+        interimText: '🎙️ Recording audio (Safari/Firefox Whisper Fallback active)...',
+      });
+    } catch (err) {
+      console.error('MediaRecorder start error:', err);
+      activeCallbacks?.onError?.('not-allowed');
+    }
   }
 }
 
-export function stopListening() {
+export async function stopListening() {
   isListening = false;
+
   if (recognition) {
     try {
       recognition.stop();
     } catch (_) {}
+    return;
+  }
+
+  // Stop MediaRecorder and transcribe via Groq Whisper API
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    return new Promise((resolve) => {
+      mediaRecorder.onstop = async () => {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+        }
+
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
+
+        if (audioBlob.size > 100) {
+          try {
+            activeCallbacks?.onResult?.({
+              finalText: '',
+              interimText: '⏳ Transcribing audio with Groq Whisper...',
+            });
+
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+              const base64Data = reader.result.split(',')[1];
+              
+              let res = await fetch('/api/whisper', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioBase64: base64Data, mimeType }),
+              });
+
+              if (!res.ok) {
+                res = await fetch(`${API_BASE_URL}/api/whisper`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ audioBase64: base64Data, mimeType }),
+                });
+              }
+
+              const data = await res.json();
+              const transcribedText = deduplicateSpeechText(data.text || '');
+              lastFinalText = transcribedText;
+
+              activeCallbacks?.onResult?.({
+                finalText: transcribedText,
+                interimText: '',
+              });
+              resolve(transcribedText);
+            };
+          } catch (err) {
+            console.error('Whisper transcription error:', err);
+            resolve('');
+          }
+        } else {
+          resolve('');
+        }
+      };
+
+      try {
+        mediaRecorder.stop();
+      } catch (_) {
+        resolve('');
+      }
+    });
   }
 }
 
@@ -158,10 +267,22 @@ export function destroyRecognition() {
   isListening = false;
   sessionCommittedText = '';
   lastFinalText = '';
+  activeCallbacks = null;
+
   if (recognition) {
     try {
       recognition.stop();
     } catch (_) {}
     recognition = null;
+  }
+
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    try {
+      mediaRecorder.stop();
+    } catch (_) {}
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
   }
 }

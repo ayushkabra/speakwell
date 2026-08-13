@@ -9,7 +9,7 @@ import {
   stopListening,
   destroyRecognition,
 } from '../lib/speechEngine';
-import { computeMetrics, annotateTranscript } from '../lib/metricsEngine';
+import { computeMetrics, annotateTranscript, checkGrammarWithLanguageTool } from '../lib/metricsEngine';
 import { polishTranscript } from '../lib/apiClient';
 
 function fmt(s) {
@@ -57,7 +57,7 @@ export default function Record() {
   useEffect(() => {
     if (!isSpeechSupported()) {
       setSpeechSupported(false);
-      setShowNotice('⚠ Speech recognition requires Chrome or Edge browser.');
+      setShowNotice('⚠ Speech recognition requires microphone permission.');
     }
     return () => destroyRecognition();
   }, []);
@@ -66,8 +66,10 @@ export default function Record() {
   const setupRecognition = useCallback(() => {
     createRecognition({
       onResult: ({ finalText: fin, interimText: interim }) => {
-        finalTextRef.current = fin;
-        setFinalText(fin);
+        if (fin) {
+          finalTextRef.current = fin;
+          setFinalText(fin);
+        }
         setInterimText(interim);
       },
       onError: (error) => {
@@ -148,9 +150,9 @@ export default function Record() {
     setIsRecording(false);
     setIsPaused(false);
     clearInterval(timerRef.current);
-    stopListening();
 
-    const raw = finalTextRef.current.trim();
+    const whisperResult = await stopListening();
+    const raw = (whisperResult || finalTextRef.current || '').trim();
     const dur = elapsedRef.current || 1;
 
     setProcessing(true);
@@ -158,11 +160,13 @@ export default function Record() {
     navigate('/processing');
 
     setProcessingStep(1);
-    await delay(700);
+    await delay(500);
 
     setProcessingStep(2);
-    const metrics = computeMetrics(raw, dur);
-    await delay(700);
+    // Real LanguageTool Grammar Evaluation
+    const grammarCheck = await checkGrammarWithLanguageTool(raw);
+    const metrics = computeMetrics(raw, dur, grammarCheck.matches);
+    await delay(500);
 
     setProcessingStep(3);
     const ctx = customContext || selectedContext || 'Free Talk';
@@ -178,10 +182,10 @@ export default function Record() {
         strongestPoint: null,
       };
     }
-    await delay(600);
+    await delay(400);
 
     setProcessingStep(4);
-    await delay(400);
+    await delay(300);
 
     const session = addSession({
       context: ctx,
@@ -189,7 +193,7 @@ export default function Record() {
       sessionType: 'free',
       durationSecs: dur,
       rawTranscript: raw,
-      annotatedTranscript: annotateTranscript(raw),
+      annotatedTranscript: annotateTranscript(raw, grammarCheck.matches),
       polishedScript: typeof polishResult === 'string' ? polishResult : (polishResult.polished || raw),
       masterScript: polishResult.masterScript || '',
       coachingTips: polishResult.coachingTips || [],
@@ -389,7 +393,7 @@ export default function Record() {
 
           <div className="mt-3 pt-3 border-t border-border/40 text-[11px] sm:text-[12px] text-text3 flex items-center justify-between">
             <span>Automatic filler word detection active</span>
-            <span>English / Hindi Auto-detected</span>
+            <span>LanguageTool Real Grammar Active</span>
           </div>
         </div>
       </div>

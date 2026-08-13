@@ -3,6 +3,8 @@
  * and providing a rich Random Topic Bank (Easy, Medium, Hard) for Free Talk Mode.
  */
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
+
 export const PRESET_PACKS = [
   {
     id: 'behavioral',
@@ -185,12 +187,10 @@ export async function extractTextFromFile(file) {
   if (!file) return '';
   const fileName = file.name.toLowerCase();
 
-  // 1. Text & Markdown files
   if (fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.csv') || fileName.endsWith('.json')) {
     return await file.text();
   }
 
-  // 2. PDF Files using PDF.js
   if (fileName.endsWith('.pdf')) {
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -224,7 +224,6 @@ export async function extractTextFromFile(file) {
           }
         }
 
-        // Clean out common PDF metadata leftovers if any
         let cleanText = extractedText
           .replace(/\/Contents\s+\d+\s+\d+\s+R/g, '')
           .replace(/\/Resources\s+\d+\s+\d+\s+R/g, '')
@@ -242,7 +241,6 @@ export async function extractTextFromFile(file) {
 
   try {
     const raw = await file.text();
-    // If raw contains PDF binary header, strip PDF markers
     if (raw.includes('%PDF-') || raw.includes('/Contents') || raw.includes('/Resources')) {
       return raw
         .replace(/%PDF-[\s\S]*?stream/g, '')
@@ -259,7 +257,7 @@ export async function extractTextFromFile(file) {
 }
 
 /**
- * Smart PDF/File Question Extractor using PDF.js & Claude API Backend
+ * Smart PDF/File Question Extractor using PDF.js & Serverless AI Backend
  */
 export async function parseQuestionsFromFile(file) {
   if (!file) return [];
@@ -268,17 +266,26 @@ export async function parseQuestionsFromFile(file) {
   if (!text) return [];
 
   try {
-    const response = await fetch('http://localhost:3001/api/extract-questions', {
+    let response = await fetch('/api/extract-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ documentText: text }),
     });
+
+    if (!response.ok) {
+      response = await fetch(`${API_BASE_URL}/api/extract-questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentText: text }),
+      });
+    }
+
     const data = await response.json();
     if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
       return data.questions.map((q) => cleanQuestionPrefix(q));
     }
   } catch (err) {
-    console.warn('Claude API question extraction offline or unreachable, using local parser:', err);
+    console.warn('API question extraction offline or unreachable, using local parser:', err);
   }
 
   return parseQuestionsFromText(text);
