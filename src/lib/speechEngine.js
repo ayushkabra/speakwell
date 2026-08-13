@@ -11,6 +11,7 @@ let isListening = false;
 let sessionCommittedText = '';
 let lastFinalText = '';
 
+let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume segments
 let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
@@ -150,9 +151,12 @@ export function createRecognition({ onResult, onError, onEnd }) {
   };
 }
 
-export async function startListening() {
-  sessionCommittedText = '';
-  lastFinalText = '';
+export async function startListening(isNewSession = false) {
+  if (isNewSession) {
+    sessionCommittedText = '';
+    whisperCommittedText = '';
+    lastFinalText = '';
+  }
   isListening = true;
 
   if (recognition) {
@@ -178,14 +182,45 @@ export async function startListening() {
 
       mediaRecorder.start(500);
       activeCallbacks?.onResult?.({
-        finalText: '',
-        interimText: '🎙️ Recording audio (Safari/Firefox Whisper Fallback active)...',
+        finalText: deduplicateSpeechText(whisperCommittedText),
+        interimText: '🎙️ Recording audio segment (Safari/Firefox Whisper active)...',
       });
     } catch (err) {
       console.error('MediaRecorder start error:', err);
       activeCallbacks?.onError?.('not-allowed');
     }
   }
+}
+
+async function sendWhisperChunk(blob, mimeType) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async () => {
+      try {
+        const base64Data = reader.result.split(',')[1];
+        let res = await fetch('/api/whisper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioBase64: base64Data, mimeType }),
+        });
+
+        if (!res.ok) {
+          res = await fetch(`${API_BASE_URL}/api/whisper`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audioBase64: base64Data, mimeType }),
+          });
+        }
+
+        const data = await res.json();
+        resolve(data.text || '');
+      } catch (err) {
+        console.warn('Whisper chunk error:', err);
+        resolve('');
+      }
+    };
+  });
 }
 
 export async function stopListening() {
@@ -195,7 +230,7 @@ export async function stopListening() {
     try {
       recognition.stop();
     } catch (_) {}
-    return;
+    return deduplicateSpeechText(lastFinalText);
   }
 
   // Stop MediaRecorder and transcribe via Groq Whisper API
@@ -207,65 +242,66 @@ export async function stopListening() {
         }
 
         const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        const fullBlob = new Blob(audioChunks, { type: mimeType });
 
-        if (audioBlob.size > 100) {
+        if (fullBlob.size > 100) {
           try {
             activeCallbacks?.onResult?.({
-              finalText: '',
-              interimText: '⏳ Transcribing audio with Groq Whisper...',
+              finalText: deduplicateSpeechText(whisperCommittedText),
+              interimText: '⏳ Transcribing audio segment with Groq Whisper...',
             });
 
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = async () => {
-              const base64Data = reader.result.split(',')[1];
-              
-              let res = await fetch('/api/whisper', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audioBase64: base64Data, mimeType }),
-              });
+            // Vercel 4.5MB Payload limit safety: slice blob into 3MB chunks if necessary
+            const MAX_CHUNK_SIZE = 3 * 1024 * 1024; // 3MB raw = ~4MB Base64
+            let segmentText = '';
 
-              if (!res.ok) {
-                res = await fetch(`${API_BASE_URL}/api/whisper`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ audioBase64: base64Data, mimeType }),
-                });
+            if (fullBlob.size > MAX_CHUNK_SIZE) {
+              const totalParts = Math.ceil(fullBlob.size / MAX_CHUNK_SIZE);
+              for (let part = 0; part < totalParts; part++) {
+                const start = part * MAX_CHUNK_SIZE;
+                const end = Math.min(fullBlob.size, (part + 1) * MAX_CHUNK_SIZE);
+                const chunkBlob = fullBlob.slice(start, end, mimeType);
+                const textPart = await sendWhisperChunk(chunkBlob, mimeType);
+                segmentText += ' ' + textPart;
               }
+            } else {
+              segmentText = await sendWhisperChunk(fullBlob, mimeType);
+            }
 
-              const data = await res.json();
-              const transcribedText = deduplicateSpeechText(data.text || '');
-              lastFinalText = transcribedText;
+            // Accumulate segment transcript across pause/resume loops
+            whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
+            const cleanFinal = deduplicateSpeechText(whisperCommittedText);
+            lastFinalText = cleanFinal;
 
-              activeCallbacks?.onResult?.({
-                finalText: transcribedText,
-                interimText: '',
-              });
-              resolve(transcribedText);
-            };
+            activeCallbacks?.onResult?.({
+              finalText: cleanFinal,
+              interimText: '',
+            });
+            resolve(cleanFinal);
           } catch (err) {
             console.error('Whisper transcription error:', err);
-            resolve('');
+            resolve(deduplicateSpeechText(whisperCommittedText));
           }
         } else {
-          resolve('');
+          resolve(deduplicateSpeechText(whisperCommittedText));
         }
       };
 
       try {
         mediaRecorder.stop();
       } catch (_) {
-        resolve('');
+        resolve(deduplicateSpeechText(whisperCommittedText));
       }
     });
   }
+
+  return deduplicateSpeechText(whisperCommittedText || lastFinalText);
 }
 
 export function destroyRecognition() {
   isListening = false;
   sessionCommittedText = '';
+  whisperCommittedText = '';
   lastFinalText = '';
   activeCallbacks = null;
 

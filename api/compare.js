@@ -5,7 +5,6 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
@@ -25,9 +24,7 @@ export default async function handler(req, res) {
     const systemPrompt = `You are a warm, authentic speech guide. Given two session summaries, give ONE specific observation about what improved in their speech structure and ONE gentle focus tip for next time. Two sentences max. Be encouraging and authentic.`;
     const userPrompt = `Session A: ${summary(sessionA)}\nSession B: ${summary(sessionB)}\nCompare these two sessions.`;
 
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY not configured');
-    }
+    if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured');
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',

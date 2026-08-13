@@ -37,7 +37,7 @@ export default function Record() {
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [timerSecs, setTimerSecs] = useState(0); // 0 = freeform
+  const [timerSecs, setTimerSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [timerHidden, setTimerHidden] = useState(false);
   const [finalText, setFinalText] = useState('');
@@ -53,7 +53,6 @@ export default function Record() {
 
   const activeTopicDisplay = customContext || selectedContext || 'Free Talk Session';
 
-  // Check Speech API support
   useEffect(() => {
     if (!isSpeechSupported()) {
       setSpeechSupported(false);
@@ -62,7 +61,6 @@ export default function Record() {
     return () => destroyRecognition();
   }, []);
 
-  // Setup recognition
   const setupRecognition = useCallback(() => {
     createRecognition({
       onResult: ({ finalText: fin, interimText: interim }) => {
@@ -81,7 +79,6 @@ export default function Record() {
     });
   }, []);
 
-  // Timer tick
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -100,14 +97,12 @@ export default function Record() {
     return () => clearInterval(timerRef.current);
   }, [isRecording, isPaused, timerSecs]);
 
-  // Scroll live transcript
   useEffect(() => {
     if (liveRef.current) {
       liveRef.current.scrollTop = liveRef.current.scrollHeight;
     }
   }, [finalText, interimText]);
 
-  // Start recording from scratch
   const handleStart = () => {
     setIsRecording(true);
     setIsPaused(false);
@@ -118,22 +113,19 @@ export default function Record() {
     elapsedRef.current = 0;
 
     setupRecognition();
-    startListening();
+    startListening(true);
   };
 
-  // Pause speech recognition
   const handlePause = () => {
     stopListening();
     setIsPaused(true);
   };
 
-  // Resume speech recognition
   const handleResume = () => {
     setIsPaused(false);
-    startListening();
+    startListening(false);
   };
 
-  // Reset/Clear recording
   const handleReset = () => {
     stopListening();
     setIsRecording(false);
@@ -145,7 +137,6 @@ export default function Record() {
     elapsedRef.current = 0;
   };
 
-  // Stop recording & finish session
   const handleStop = useCallback(async () => {
     setIsRecording(false);
     setIsPaused(false);
@@ -163,7 +154,6 @@ export default function Record() {
     await delay(500);
 
     setProcessingStep(2);
-    // Real LanguageTool Grammar Evaluation
     const grammarCheck = await checkGrammarWithLanguageTool(raw);
     const metrics = computeMetrics(raw, dur, grammarCheck.matches);
     await delay(500);
@@ -220,7 +210,6 @@ export default function Record() {
 
   return (
     <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-6 max-[768px]:px-4 pt-6 max-[768px]:pt-4 pb-16">
-      {/* Top Back Navigation */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => navigate('/context')}
@@ -230,18 +219,14 @@ export default function Record() {
         </button>
       </div>
 
-      {/* Speech Notice */}
       {showNotice && (
         <div className="text-[12px] text-orange bg-orange-dim border border-[rgba(204,159,96,0.2)] px-4 py-2 rounded-lg mb-4 text-center">
           {showNotice}
         </div>
       )}
 
-      {/* 2-Column Split Dashboard Layout */}
       <div className="grid grid-cols-[44%_56%] gap-6 max-[900px]:grid-cols-1 items-start">
-        {/* LEFT COLUMN: Topic, Timer & Recording Controls */}
         <div className="flex flex-col items-center text-center bg-surface border border-border-md rounded-2xl p-6 max-[768px]:p-5 shadow-xl">
-          {/* Active Topic Banner */}
           <div className="w-full mb-5 p-4 bg-surface2/60 border border-border rounded-xl">
             <div className="text-[10px] tracking-[0.2em] uppercase text-accent font-medium mb-1 flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
@@ -252,7 +237,6 @@ export default function Record() {
             </h2>
           </div>
 
-          {/* Timer Presets */}
           {!isRecording && (
             <div className="flex gap-2 mb-5 justify-center flex-wrap">
               {TIMER_PRESETS.map((p, i) => (
@@ -274,7 +258,6 @@ export default function Record() {
             </div>
           )}
 
-          {/* Big Display Timer */}
           <div
             onClick={() => setTimerHidden(!timerHidden)}
             className={`font-serif text-[68px] sm:text-[76px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
@@ -290,12 +273,10 @@ export default function Record() {
             tap to {timerHidden ? 'show' : 'hide'} timer
           </div>
 
-          {/* Audio Waveform */}
           <div className="mb-5 w-full flex flex-col items-center">
             <WaveForm isActive={isRecording && !isPaused} />
           </div>
 
-          {/* Mic & Control Actions */}
           <div className="flex flex-col items-center gap-3 w-full">
             {!isRecording ? (
               <button
@@ -356,7 +337,6 @@ export default function Record() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Live Spoken Transcript & Streaming Box */}
         <div className="bg-surface border border-border-md rounded-2xl p-6 max-[768px]:p-5 shadow-xl flex flex-col justify-between min-h-[360px]">
           <div>
             <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-3">

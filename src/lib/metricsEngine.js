@@ -45,7 +45,6 @@ export async function checkGrammarWithLanguageTool(text) {
     return { matches, errorCount };
   } catch (err) {
     console.warn('LanguageTool direct check fallback:', err);
-    // Offline local heuristic fallback
     const words = text.trim().split(/\s+/).length || 1;
     const estimatedErrors = Math.max(0, Math.round(words / 45));
     return { matches: [], errorCount: estimatedErrors };
@@ -82,13 +81,22 @@ export function computeMetrics(rawTranscript, durationSecs, grammarMatches = nul
   const clarity = Math.min(99, Math.max(35, Math.round(100 - fillers * 3 - Math.abs(avgWPS - 18) * 1.3)));
   const flow = Math.min(99, Math.max(25, Math.round(clarity * 0.65 + (wpm > 80 && wpm < 175 ? 32 : 8))));
   
-  // Real LanguageTool grammar error count or fallback estimate
+  // Real LanguageTool grammar error count
   const grammar = grammarMatches !== null && Array.isArray(grammarMatches)
     ? grammarMatches.length
     : Math.max(0, Math.round(words / 40));
 
   const pauses = Math.max(0, Math.round(dur / 28));
-  const overall = Math.min(99, Math.round(clarity * 0.4 + flow * 0.35 + Math.max(0, 100 - fillers * 4) * 0.25));
+
+  // Factor real grammar precision into overall score calculation
+  const grammarScore = Math.max(20, Math.min(100, Math.round(100 - (grammar / Math.max(1, words)) * 100)));
+
+  const overall = Math.min(99, Math.max(20, Math.round(
+    clarity * 0.35 +
+    flow * 0.30 +
+    Math.max(0, 100 - fillers * 4) * 0.20 +
+    grammarScore * 0.15
+  )));
 
   return { wpm, clarity, flow, fillers, grammar, pauses, overall };
 }
