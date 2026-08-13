@@ -1,5 +1,5 @@
 /**
- * speechEngine.js — Universal Web Speech API Engine with Seamless Infinite Keep-Alive Loop
+ * speechEngine.js — Universal Web Speech API Engine + MediaRecorder Groq Whisper Fallback ($0 Cost)
  * Guaranteed zero word duplication & continuous multi-minute speech recognition across Desktop & Mobile.
  */
 
@@ -8,30 +8,27 @@ let isListening = false;
 let sessionCommittedText = '';
 let lastFinalText = '';
 
+let mediaRecorder = null;
+let audioChunks = [];
+
 export function isSpeechSupported() {
-  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition || navigator.mediaDevices?.getUserMedia);
 }
 
 /**
  * Universal Multi-Stage Zero-Duplication Pipeline
- * Eliminates duplicate consecutive words, repeating n-gram phrases (1 to 10 words),
- * and overlapping phrase buffers across all Web Speech API engines.
  */
 export function deduplicateSpeechText(text) {
   if (!text || !text.trim()) return '';
-
   let str = text.trim();
 
-  // STAGE 1: Strip consecutive duplicate single words (e.g. "word word word" -> "word")
   str = str.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
 
-  // STAGE 2: Strip repeating n-gram phrases from 2 to 10 words long
   for (let phraseLen = 10; phraseLen >= 2; phraseLen--) {
     const pattern = new RegExp(`\\b((?:\\w+\\s+){${phraseLen - 1}}\\w+)\\s+\\1\\b`, 'gi');
     str = str.replace(pattern, '$1');
   }
 
-  // STAGE 3: Token-level rolling window phrase collapse for WebKit cumulative buffers
   const words = str.split(/\s+/).filter(Boolean);
   if (words.length > 4) {
     const cleanedWords = [];
@@ -52,7 +49,7 @@ export function deduplicateSpeechText(text) {
       }
 
       if (matchedLength > 0) {
-        i += matchedLength; // Skip repeated phrase chunk!
+        i += matchedLength;
       } else {
         i++;
       }
@@ -61,7 +58,6 @@ export function deduplicateSpeechText(text) {
     str = cleanedWords.join(' ');
   }
 
-  // STAGE 4: Stitch overlapping suffix/prefix word boundaries
   str = str
     .replace(/\b(\w+)\s+\1\b/gi, '$1')
     .replace(/\s{2,}/g, ' ')
@@ -94,11 +90,9 @@ export function createRecognition({ onResult, onError, onEnd }) {
       }
     }
 
-    // Combine committed text from auto-restarts with current recognition session
     const fullRawFinal = (sessionCommittedText + ' ' + currentFinal).trim();
     lastFinalText = fullRawFinal;
 
-    // Pass through Universal Zero-Duplication Pipeline
     const cleanFinal = deduplicateSpeechText(fullRawFinal);
     const cleanInterim = deduplicateSpeechText(currentInterim);
 
@@ -122,7 +116,6 @@ export function createRecognition({ onResult, onError, onEnd }) {
   };
 
   recognition.onend = () => {
-    // When browser engine auto-terminates (~60s limit), commit text & restart seamlessly
     if (isListening) {
       if (lastFinalText) {
         sessionCommittedText = lastFinalText;

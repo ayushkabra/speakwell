@@ -6,10 +6,69 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 
+const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 const ANTHROPIC_API_KEY = process.env.VITE_ANTHROPIC_API_KEY;
+
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+
+// Helper function to call Groq Chat API (100% Free Tier)
+async function callGroq(systemPrompt, userPrompt) {
+  if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured');
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.6,
+      max_tokens: 2500,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Groq API Error');
+
+  const raw = data.choices?.[0]?.message?.content || '{}';
+  return JSON.parse(raw);
+}
+
+// Helper function to call Anthropic Claude API
+async function callClaude(systemPrompt, userPrompt) {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not configured');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 2500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Claude API Error');
+
+  const rawContent = data.content?.[0]?.text || '{}';
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+  return jsonMatch ? JSON.parse(jsonMatch[0]) : { polished: rawContent };
+}
 
 // POST /api/polish — generate authentic script, master speech script, coaching tips, & thought blueprint
 app.post('/api/polish', async (req, res) => {
@@ -17,17 +76,7 @@ app.post('/api/polish', async (req, res) => {
     const { transcript, context } = req.body;
     if (!transcript) return res.status(400).json({ error: 'No transcript provided' });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 2500,
-        system: `You are an elite speechwriter and master speaker.
+    const systemPrompt = `You are an elite speechwriter and master speaker.
 Given a user's spoken transcript and topic, produce TWO distinct scripts and actionable coaching feedback:
 
 1. "polished": Authentic De-Cluttered Script. Preserve 100% of the user's exact personal voice, vocabulary, stories, and tone. Remove filler words ("um", "uh", "like", "you know", "basically"), false starts, and stuttered restarts. DO NOT use robotic corporate AI jargon ("synergistic", "delve into", "in today's landscape").
@@ -35,61 +84,42 @@ Given a user's spoken transcript and topic, produce TWO distinct scripts and act
 2. "masterScript": Ideal Master Speech Script ON THIS EXACT TOPIC.
    CRITICAL RULES FOR "masterScript":
    - Write a REAL, HIGH-IMPACT, TOPIC-SPECIFIC SPOKEN SPEECH SCRIPT that someone would actually deliver on stage or in a meeting.
-   - ABSOLUTELY NO META-TEXT OR BOILERPLATE (Never write generic lines like "On the topic of X, the core argument centers on..." or "executive clarity is achieved by...").
-   - DIVE DIRECTLY INTO THE REAL SUBJECT MATTER with concrete arguments, vivid real-world analogies, specific examples, and actionable solutions.
+   - ABSOLUTELY NO META-TEXT OR BOILERPLATE (Never write generic lines like "On the topic of X, the core argument centers on...").
+   - DIVE DIRECTLY INTO THE REAL SUBJECT MATTER with concrete arguments, vivid analogies, specific examples, and actionable solutions.
    - Format with markdown headers:
-     **📌 Opening Hook & Thesis** (Bold opening statement on the topic)
-     **💡 Core Argument 1: [Specific Topic Point]** (Deep reasoning & insights)
-     **🎯 Real-World Evidence & Impact** (Concrete examples or industry cases)
-     **🏁 High-Impact Closing** (Memorable call-to-action or concluding takeaway)
+     **📌 Opening Hook & Thesis**
+     **💡 Core Argument 1: [Specific Point]**
+     **🎯 Real-World Evidence & Impact**
+     **🏁 High-Impact Closing**
 
-3. "coachingTips": Array of 3-4 specific, actionable coaching points on what the user could have spoken better on this topic (e.g. "Where to add stronger evidence", "How to sharpen the opening hook", "Transition improvements").
+3. "coachingTips": Array of 3-4 specific, actionable coaching points on what the user could have spoken better on this topic.
 
 4. "structuralMapping": Object with keys point, reason, example, conclusion summarizing their spoken thoughts.
 
 5. "strongestPoint": The single most compelling sentence from their original speech.
 
-Return ONLY a raw JSON object with keys:
-{
-  "polished": "string",
-  "masterScript": "string",
-  "coachingTips": ["string", "string", "string"],
-  "structuralMapping": {
-    "point": "string",
-    "reason": "string",
-    "example": "string",
-    "conclusion": "string"
-  },
-  "strongestPoint": "string"
-}
-Do not include markdown codeblocks outside JSON.`,
-        messages: [
-          {
-            role: 'user',
-            content: `Topic / Context: ${context || 'Free Talk'}. User's spoken transcript:\n${transcript}\n\nWrite a real, compelling master speech script directly addressing "${context || 'this topic'}" with concrete arguments and zero generic boilerplate text.`,
-          },
-        ],
-      }),
-    });
+Return ONLY a raw JSON object with keys: polished, masterScript, coachingTips (array), structuralMapping (object), strongestPoint.`;
 
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message });
+    const userPrompt = `Topic / Context: ${context || 'Free Talk'}. User's spoken transcript:\n${transcript}\n\nWrite a real, compelling master speech script directly addressing "${context || 'this topic'}" with concrete arguments and zero generic boilerplate text.`;
 
-    const rawContent = data.content?.[0]?.text || '{}';
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
     let parsed = {};
-    if (jsonMatch) {
+    if (GROQ_API_KEY) {
       try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
-        parsed = { polished: rawContent };
+        parsed = await callGroq(systemPrompt, userPrompt);
+      } catch (err) {
+        console.warn('Groq API failed, falling back to Anthropic/local:', err.message);
+        if (ANTHROPIC_API_KEY) {
+          parsed = await callClaude(systemPrompt, userPrompt);
+        }
       }
+    } else if (ANTHROPIC_API_KEY) {
+      parsed = await callClaude(systemPrompt, userPrompt);
     } else {
-      parsed = { polished: rawContent };
+      throw new Error('No AI provider API key configured on backend');
     }
 
     res.json({
-      polished: parsed.polished || rawContent,
+      polished: parsed.polished || transcript,
       masterScript: parsed.masterScript || '',
       coachingTips: parsed.coachingTips || [],
       structuralMapping: parsed.structuralMapping || null,
@@ -97,147 +127,83 @@ Do not include markdown codeblocks outside JSON.`,
     });
   } catch (err) {
     console.error('Polish API error:', err);
-    res.status(500).json({ error: 'Failed to generate polished script' });
+    res.status(500).json({ error: 'Failed to generate polished script', details: err.message });
   }
 });
 
-// POST /api/compare — generate insight comparing two sessions
-app.post('/api/compare', async (req, res) => {
+// POST /api/grammar — LanguageTool Free Public API Proxy Endpoint
+app.post('/api/grammar', async (req, res) => {
   try {
-    const { sessionA, sessionB } = req.body;
-    if (!sessionA || !sessionB) return res.status(400).json({ error: 'Two sessions required' });
+    const { text } = req.body;
+    if (!text) return res.json({ matches: [], score: 100 });
 
-    const summary = (s) =>
-      `${s.context} session (${s.date}): Overall ${s.metrics.overall}, WPM ${s.metrics.wpm}, Clarity ${s.metrics.clarity}, Flow ${s.metrics.flow}, Fillers ${s.metrics.fillers}, Grammar errors ${s.metrics.grammar}, Pauses ${s.metrics.pauses}`;
+    const params = new URLSearchParams();
+    params.append('text', text);
+    params.append('language', 'en-US');
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const ltRes = await fetch('https://api.languagetool.org/v2/check', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 256,
-        system: `You are a warm, authentic speech guide. Given two session summaries, give ONE specific observation about what improved in their speech structure and ONE gentle focus tip for next time. Two sentences max. Be encouraging and authentic.`,
-        messages: [
-          {
-            role: 'user',
-            content: `Session A: ${summary(sessionA)}\nSession B: ${summary(sessionB)}\nCompare these two sessions.`,
-          },
-        ],
-      }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
     });
 
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message });
+    const ltData = await ltRes.json();
+    const matches = ltData.matches || [];
 
-    const insight = data.content?.[0]?.text || '';
-    res.json({ insight });
-  } catch (err) {
-    console.error('Compare API error:', err);
-    res.status(500).json({ error: 'Failed to generate insight' });
-  }
-});
+    // Calculate real grammar precision score (100 - weighted error count)
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length || 1;
+    const errorCount = matches.length;
+    const score = Math.max(20, Math.min(100, Math.round(100 - (errorCount / wordCount) * 100)));
 
-// POST /api/extract-questions — AI document question extractor
-app.post('/api/extract-questions', async (req, res) => {
-  try {
-    const { documentText } = req.body;
-    if (!documentText) return res.status(400).json({ error: 'No document text provided' });
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
-        system: `You are a document analyzer. Read the provided text and extract ONLY practice or interview questions from it. Return a raw JSON array of strings: ["Question 1", "Question 2", ...]. Do not include markdown codeblocks or explanation. Return JSON array only.`,
-        messages: [
-          {
-            role: 'user',
-            content: `Extract practice questions from this text:\n\n${documentText.slice(0, 4000)}`,
-          },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message });
-
-    const rawContent = data.content?.[0]?.text || '[]';
-    const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
-    const questions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-    res.json({ questions });
-  } catch (err) {
-    console.error('Extract Questions API error:', err);
-    res.status(500).json({ error: 'Failed to extract questions from document' });
-  }
-});
-
-// POST /api/generate-ladder-question — AI progressive topic question generator
-app.post('/api/generate-ladder-question', async (req, res) => {
-  try {
-    const { domain, level, previousQuestions } = req.body;
-    if (!domain) return res.status(400).json({ error: 'Domain required' });
-
-    const prevList = (previousQuestions || []).join('\n- ');
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 512,
-        system: `You are an authentic speech guide creating a progressive difficulty topic ladder.
-Generate a single speech prompt for Domain: "${domain}" at Difficulty Level ${level || 1}.
-
-Guidelines for Level Progression:
-- Level 1: Warm-up / Easy personal memory or favorite aspect.
-- Level 2: Deep Analysis / Medium — requires structured reasoning or trade-off evaluation.
-- Level 3: High-Stakes Debate / Hard — requires handling counter-arguments or controversy.
-- Level 4: Complex Ethics / Policy — structural dilemmas and long-term implications.
-- Level 5+: Mastermind Challenge — radical restructuring, crisis scenarios, or deep domain edge cases.
-
-Return ONLY a raw JSON object with keys:
-{
-  "questionText": "The question string here",
-  "hint": "Short 1-sentence tip on how to structure the answer"
-}
-Do not include markdown codeblocks or extra text.`,
-        messages: [
-          {
-            role: 'user',
-            content: `Domain: ${domain}\nTarget Level: ${level}\nPrevious questions asked so far:\n- ${prevList || 'None'}\n\nGenerate Level ${level} question:`,
-          },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message });
-
-    const rawContent = data.content?.[0]?.text || '{}';
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     res.json({
-      questionText: parsed.questionText || '',
-      hint: parsed.hint || '',
+      matches: matches.map((m) => ({
+        message: m.message,
+        shortMessage: m.shortMessage,
+        offset: m.offset,
+        length: m.length,
+        replacements: (m.replacements || []).slice(0, 3).map((r) => r.value),
+      })),
+      score,
+      errorCount,
     });
   } catch (err) {
-    console.error('Generate Ladder Question API error:', err);
-    res.status(500).json({ error: 'Failed to generate progressive question' });
+    console.error('Grammar check error:', err);
+    res.json({ matches: [], score: 90, errorCount: 0 });
+  }
+});
+
+// POST /api/whisper — Groq Whisper Audio Transcription Endpoint (Free Tier)
+app.post('/api/whisper', async (req, res) => {
+  try {
+    if (!GROQ_API_KEY) return res.status(500).json({ error: 'Groq API key not configured' });
+
+    // Expect raw audio binary or base64 in body
+    const { audioBase64, mimeType } = req.body;
+    if (!audioBase64) return res.status(400).json({ error: 'No audio data provided' });
+
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    const formData = new FormData();
+    const blob = new Blob([audioBuffer], { type: mimeType || 'audio/webm' });
+    formData.append('file', blob, 'recording.webm');
+    formData.append('model', 'whisper-large-v3-turbo');
+
+    const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+      },
+      body: formData,
+    });
+
+    const groqData = await groqRes.json();
+    if (groqData.error) throw new Error(groqData.error.message);
+
+    res.json({ text: groqData.text || '' });
+  } catch (err) {
+    console.error('Groq Whisper error:', err);
+    res.status(500).json({ error: 'Whisper transcription failed' });
   }
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`API proxy running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Speakwell $0 API Proxy running on http://localhost:${PORT}`));

@@ -1,6 +1,8 @@
 /**
- * apiClient.js — calls to the Express proxy for Claude API with reliable fallback
+ * apiClient.js — calls to Vercel production serverless backend ($0 Groq AI engine)
  */
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
 
 function buildTopicMasterScript(transcript, context) {
   const topic = context || 'the topic';
@@ -23,8 +25,8 @@ export async function polishTranscript(transcript, context) {
       body: JSON.stringify({ transcript, context }),
     });
 
-    if (!res.ok && res.status === 404) {
-      res = await fetch('http://localhost:3001/api/polish', {
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/api/polish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript, context }),
@@ -42,8 +44,7 @@ export async function polishTranscript(transcript, context) {
       strongestPoint: data.strongestPoint || null,
     };
   } catch (err) {
-    console.error('Polish API error:', err);
-    // Fallback filler removal & structure formatting
+    console.warn('Polish API fallback:', err);
     const fillers = [
       /\bum\b/gi, /\buh\b/gi, /\blike\b/gi, /\byou know\b/gi,
       /\bbasically\b/gi, /\bactually\b/gi, /\bliterally\b/gi,
@@ -80,8 +81,8 @@ export async function compareInsight(sessionA, sessionB) {
       body: JSON.stringify({ sessionA, sessionB }),
     });
 
-    if (!res.ok && res.status === 404) {
-      res = await fetch('http://localhost:3001/api/compare', {
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/api/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionA, sessionB }),
@@ -92,7 +93,7 @@ export async function compareInsight(sessionA, sessionB) {
     if (data.error) throw new Error(data.error);
     return data.insight;
   } catch (err) {
-    console.error('Compare API error:', err);
+    console.warn('Compare API fallback:', err);
     const delta = (sessionB.metrics?.overall || 0) - (sessionA.metrics?.overall || 0);
     if (delta > 0) {
       return `Your overall score improved by ${delta} points — that's real progress. Keep working on reducing filler words for even smoother delivery.`;
@@ -109,8 +110,8 @@ export async function fetchLadderQuestion(domain, level, previousQuestions = [])
       body: JSON.stringify({ domain, level, previousQuestions }),
     });
 
-    if (!res.ok && res.status === 404) {
-      res = await fetch('http://localhost:3001/api/generate-ladder-question', {
+    if (!res.ok) {
+      res = await fetch(`${API_BASE_URL}/api/generate-ladder-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, level, previousQuestions }),
@@ -121,7 +122,7 @@ export async function fetchLadderQuestion(domain, level, previousQuestions = [])
     if (data.error) throw new Error(data.error);
     return data;
   } catch (err) {
-    console.error('Fetch ladder question error:', err);
+    console.warn('Fetch ladder question fallback:', err);
     return null;
   }
 }
