@@ -3,6 +3,7 @@
  * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop)
  * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
  * Isolated Closure-Scoped 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
+ * All segment promises are tracked in segmentPromises array & awaited via Promise.all on stopListening().
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
@@ -15,7 +16,7 @@ let lastFinalText = '';
 let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume & rotation segments
 let mediaStream = null;
 let currentSegmentRecorder = null;
-let activeSegmentPromise = null;
+let segmentPromises = []; // Track all segment transcription promises to guarantee zero race conditions on stop
 let activeCallbacks = null;
 let segmentRotateTimer = null;
 
@@ -203,7 +204,7 @@ function startSegment() {
     }
   };
 
-  activeSegmentPromise = new Promise((resolve) => {
+  const segPromise = new Promise((resolve) => {
     recorder.onstop = async () => {
       const blob = new Blob(instanceChunks, { type: mimeType });
       if (blob.size > 100) {
@@ -232,6 +233,7 @@ function startSegment() {
     };
   });
 
+  segmentPromises.push(segPromise);
   currentSegmentRecorder = recorder;
   recorder.start(500);
 
@@ -250,6 +252,7 @@ export async function startListening(isNewSession = false) {
     sessionCommittedText = '';
     whisperCommittedText = '';
     lastFinalText = '';
+    segmentPromises = [];
   }
   isListening = true;
 
@@ -299,8 +302,8 @@ export async function stopListening() {
     mediaStream = null;
   }
 
-  if (activeSegmentPromise) {
-    await activeSegmentPromise;
+  if (segmentPromises.length > 0) {
+    await Promise.all(segmentPromises);
   }
 
   return deduplicateSpeechText(whisperCommittedText || lastFinalText);
@@ -312,6 +315,7 @@ export function destroyRecognition() {
   sessionCommittedText = '';
   whisperCommittedText = '';
   lastFinalText = '';
+  segmentPromises = [];
   activeCallbacks = null;
 
   if (recognition) {
