@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
+import { saveSessionToFirestore, loadUserSessionsFromFirestore } from '../lib/firebase';
 
 const STORAGE_KEY = 'speakwell_sessions';
 
-function loadSessions() {
+function loadLocalSessions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -12,13 +13,31 @@ function loadSessions() {
   }
 }
 
-function saveSessions(sessions) {
+function saveLocalSessions(sessions) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
 const useSessionStore = create((set, get) => ({
+  // User Auth State
+  user: null,
+  setUser: async (userObj) => {
+    set({ user: userObj });
+    if (userObj?.uid) {
+      const cloudSessions = await loadUserSessionsFromFirestore(userObj.uid);
+      if (cloudSessions && cloudSessions.length > 0) {
+        // Merge cloud sessions with local sessions
+        const local = loadLocalSessions();
+        const mergedMap = new Map();
+        [...cloudSessions, ...local].forEach((s) => mergedMap.set(s.id, s));
+        const merged = Array.from(mergedMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+        saveLocalSessions(merged);
+        set({ sessions: merged });
+      }
+    }
+  },
+
   // All saved sessions
-  sessions: loadSessions(),
+  sessions: loadLocalSessions(),
 
   // Current session type: 'free' | 'drill' | 'ladder' | 'slide' | 'framework' | 'script'
   sessionType: 'free',
@@ -208,8 +227,15 @@ const useSessionStore = create((set, get) => ({
       ...sessionData,
     };
     const updated = [session, ...get().sessions];
-    saveSessions(updated);
+    saveLocalSessions(updated);
     set({ sessions: updated, currentSession: session });
+
+    // Sync to Cloud Firestore if logged in
+    const currentUser = get().user;
+    if (currentUser?.uid) {
+      saveSessionToFirestore(currentUser.uid, session);
+    }
+
     return session;
   },
 
@@ -220,7 +246,6 @@ const useSessionStore = create((set, get) => ({
 
   getSessionById: (id) => get().sessions.find((s) => s.id === id),
 
-  // Computed: stats for home screen
   getStats: () => {
     const sessions = get().sessions;
     const count = sessions.length;
