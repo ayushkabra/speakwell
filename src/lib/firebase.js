@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -21,8 +21,13 @@ export async function loginWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (err) {
-    console.error('Google Sign-in error:', err);
-    throw err;
+    console.warn('Popup sign in failed or blocked, trying redirect:', err);
+    try {
+      await signInWithRedirect(auth, googleProvider);
+    } catch (redirectErr) {
+      console.error('Google Redirect Sign-in error:', redirectErr);
+      throw redirectErr;
+    }
   }
 }
 
