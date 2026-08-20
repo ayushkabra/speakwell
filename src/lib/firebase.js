@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCFSaBwk4J6S5a0oq5mesjUiYsKd5MhGi0",
@@ -8,7 +9,8 @@ const firebaseConfig = {
   projectId: "speakwell-555c4",
   storageBucket: "speakwell-555c4.firebasestorage.app",
   messagingSenderId: "804163134495",
-  appId: "1:804163134495:web:55770e2a8d8ef96d81e12a"
+  appId: "1:804163134495:web:55770e2a8d8ef96d81e12a",
+  measurementId: "G-804163134495"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -16,9 +18,29 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
+let analytics = null;
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  }).catch(() => {});
+}
+
+export function trackAnalyticsEvent(eventName, eventParams = {}) {
+  if (analytics) {
+    try {
+      logEvent(analytics, eventName, eventParams);
+    } catch (err) {
+      console.warn('Analytics event warning:', err);
+    }
+  }
+}
+
 export async function loginWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    trackAnalyticsEvent('login', { method: 'google' });
     return result.user;
   } catch (err) {
     console.warn('Popup sign in failed or blocked, trying redirect:', err);
@@ -34,6 +56,7 @@ export async function loginWithGoogle() {
 export async function logoutUser() {
   try {
     await signOut(auth);
+    trackAnalyticsEvent('logout');
   } catch (err) {
     console.error('Sign-out error:', err);
   }

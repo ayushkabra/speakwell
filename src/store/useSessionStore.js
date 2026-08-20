@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { saveSessionToFirestore, loadUserSessionsFromFirestore } from '../lib/firebase';
+import { saveSessionToFirestore, loadUserSessionsFromFirestore, trackAnalyticsEvent } from '../lib/firebase';
 
 const STORAGE_KEY = 'speakwell_sessions';
 
@@ -25,7 +25,6 @@ const useSessionStore = create((set, get) => ({
     if (userObj?.uid) {
       const cloudSessions = await loadUserSessionsFromFirestore(userObj.uid);
       if (cloudSessions && cloudSessions.length > 0) {
-        // Merge cloud sessions with local sessions
         const local = loadLocalSessions();
         const mergedMap = new Map();
         [...cloudSessions, ...local].forEach((s) => mergedMap.set(s.id, s));
@@ -36,13 +35,9 @@ const useSessionStore = create((set, get) => ({
     }
   },
 
-  // All saved sessions
   sessions: loadLocalSessions(),
-
-  // Current session type: 'free' | 'drill' | 'ladder' | 'slide' | 'framework' | 'script'
   sessionType: 'free',
 
-  // Free talk state
   selectedContext: '',
   customContext: '',
   isRecording: false,
@@ -51,45 +46,41 @@ const useSessionStore = create((set, get) => ({
   isProcessing: false,
   processingStep: 0,
 
-  // Drill mode state
   drillQuestions: [],
   drillTimerSecs: 60,
   currentDrillIndex: 0,
   drillAnswers: [],
 
-  // Topic Ladder state
   ladderDomain: '',
   ladderLevel: 1,
   ladderAnswers: [],
 
-  // Slide Deck state
   slideDeck: [],
   slideTimerSecs: 60,
   currentSlideIndex: 0,
   slideAnswers: [],
 
-  // Framework mode state
   frameworkType: 'prep',
   frameworkPrompt: '',
   currentFrameworkStep: 0,
   frameworkAnswers: [],
 
-  // Script Rehearsal state
   scriptText: '',
   scriptTitle: '',
   scriptPaceWpm: 140,
 
-  // Current results (after recording)
   currentSession: null,
 
-  // Compare state
   compareA: null,
   compareB: null,
   compareInsight: '',
   compareLoading: false,
 
   // Actions
-  setSessionType: (type) => set({ sessionType: type }),
+  setSessionType: (type) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: type });
+    set({ sessionType: type });
+  },
   setContext: (ctx) => set({ selectedContext: ctx }),
   setCustomContext: (text) => set({ customContext: text }),
   setRecording: (val) => set({ isRecording: val }),
@@ -99,14 +90,16 @@ const useSessionStore = create((set, get) => ({
   setProcessingStep: (step) => set({ processingStep: step }),
 
   // Drill actions
-  setDrillSetup: ({ questions, timerSecs }) =>
+  setDrillSetup: ({ questions, timerSecs }) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: 'drill' });
     set({
       sessionType: 'drill',
       drillQuestions: questions,
       drillTimerSecs: timerSecs ?? 60,
       currentDrillIndex: 0,
       drillAnswers: [],
-    }),
+    });
+  },
 
   addDrillAnswer: (answer) =>
     set((state) => {
@@ -125,13 +118,15 @@ const useSessionStore = create((set, get) => ({
     }),
 
   // Ladder Actions
-  setLadderDomain: (domain) =>
+  setLadderDomain: (domain) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: 'ladder', domain });
     set({
       sessionType: 'ladder',
       ladderDomain: domain,
       ladderLevel: 1,
       ladderAnswers: [],
-    }),
+    });
+  },
 
   addLadderAnswer: (answer) =>
     set((state) => {
@@ -150,14 +145,16 @@ const useSessionStore = create((set, get) => ({
     }),
 
   // Slide Deck Actions
-  setSlideSetup: ({ slides, timerSecs }) =>
+  setSlideSetup: ({ slides, timerSecs }) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: 'slide' });
     set({
       sessionType: 'slide',
       slideDeck: slides,
       slideTimerSecs: timerSecs ?? 60,
       currentSlideIndex: 0,
       slideAnswers: [],
-    }),
+    });
+  },
 
   addSlideAnswer: (answer) =>
     set((state) => {
@@ -176,14 +173,16 @@ const useSessionStore = create((set, get) => ({
     }),
 
   // Framework Actions
-  setFrameworkSetup: ({ frameworkType, prompt }) =>
+  setFrameworkSetup: ({ frameworkType, prompt }) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: 'framework', framework_type: frameworkType });
     set({
       sessionType: 'framework',
       frameworkType: frameworkType || 'prep',
       frameworkPrompt: prompt || '',
       currentFrameworkStep: 0,
       frameworkAnswers: [],
-    }),
+    });
+  },
 
   addFrameworkAnswer: (answer) =>
     set((state) => {
@@ -203,13 +202,15 @@ const useSessionStore = create((set, get) => ({
     }),
 
   // Script Actions
-  setScriptSetup: ({ text, title, paceWpm }) =>
+  setScriptSetup: ({ text, title, paceWpm }) => {
+    trackAnalyticsEvent('mode_selected', { mode_name: 'script' });
     set({
       sessionType: 'script',
       scriptText: text || '',
       scriptTitle: title || 'Script Rehearsal',
       scriptPaceWpm: paceWpm || 140,
-    }),
+    });
+  },
 
   resetScript: () =>
     set({
@@ -230,7 +231,14 @@ const useSessionStore = create((set, get) => ({
     saveLocalSessions(updated);
     set({ sessions: updated, currentSession: session });
 
-    // Sync to Cloud Firestore if logged in
+    trackAnalyticsEvent('speech_session_completed', {
+      session_type: sessionData.sessionType || 'free',
+      duration_sec: sessionData.durationSecs || 0,
+      overall_score: sessionData.metrics?.overall || 0,
+      fillers_count: sessionData.metrics?.fillers || 0,
+      grammar_count: sessionData.metrics?.grammar || 0,
+    });
+
     const currentUser = get().user;
     if (currentUser?.uid) {
       saveSessionToFirestore(currentUser.uid, session);
