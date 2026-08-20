@@ -24,13 +24,19 @@ const useSessionStore = create((set, get) => ({
     set({ user: userObj });
     if (userObj?.uid) {
       const cloudSessions = await loadUserSessionsFromFirestore(userObj.uid);
+      const local = loadLocalSessions();
+      
       if (cloudSessions && cloudSessions.length > 0) {
-        const local = loadLocalSessions();
         const mergedMap = new Map();
         [...cloudSessions, ...local].forEach((s) => mergedMap.set(s.id, s));
         const merged = Array.from(mergedMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
         saveLocalSessions(merged);
         set({ sessions: merged });
+        // Sync local sessions to cloud
+        local.forEach((s) => saveSessionToFirestore(userObj.uid, s));
+      } else if (local && local.length > 0) {
+        // Sync all local sessions to Cloud Firestore
+        local.forEach((s) => saveSessionToFirestore(userObj.uid, s));
       }
     }
   },
