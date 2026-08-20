@@ -10,7 +10,7 @@ const firebaseConfig = {
   storageBucket: "speakwell-555c4.firebasestorage.app",
   messagingSenderId: "804163134495",
   appId: "1:804163134495:web:55770e2a8d8ef96d81e12a",
-  measurementId: "G-804163134495"
+  ...(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ? { measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID } : {})
 };
 
 const app = initializeApp(firebaseConfig);
