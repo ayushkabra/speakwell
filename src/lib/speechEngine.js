@@ -4,6 +4,7 @@
  * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
  * Continuous 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
  * All segment promises are tracked in segmentPromises array & awaited via Promise.all on stopListening().
+ * Mobile Screen WakeLock & Page Visibility Safeguards included.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
@@ -14,12 +15,13 @@ let sessionCommittedText = '';
 let lastFinalText = '';
 let processedFinalIndices = new Set();
 
-let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume & rotation segments
+let whisperCommittedText = '';
 let mediaStream = null;
 let currentSegmentRecorder = null;
-let segmentPromises = []; // Track all segment transcription promises to guarantee zero race conditions on stop
+let segmentPromises = [];
 let activeCallbacks = null;
 let segmentRotateTimer = null;
+let wakeLock = null;
 
 export function isSpeechSupported() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition || (navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
@@ -29,9 +31,32 @@ export function hasNativeSpeechRecognition() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
+export function isMobileDevice() {
+  return typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+/**
+ * Mobile Screen Wake Lock API Safeguard: Keeps screen awake while user speaks
+ */
+async function acquireWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.warn('Wake Lock request notice:', err);
+    }
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
 /**
  * Universal Multi-Stage Zero-Duplication Pipeline
- * Strips compounding repetitive phrases caused by Mobile Web Speech API restarts
  */
 export function deduplicateSpeechText(text) {
   if (!text || !text.trim()) return '';
@@ -40,7 +65,7 @@ export function deduplicateSpeechText(text) {
   // Strip consecutive repeated words ("guitar guitar" -> "guitar")
   str = str.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
 
-  // Strip repeated sentence blocks ("I have recently started learning guitar I have recently started learning guitar" -> "I have recently started learning guitar")
+  // Strip repeated sentence blocks
   for (let phraseLen = 15; phraseLen >= 2; phraseLen--) {
     const pattern = new RegExp(`\\b((?:\\w+\\s+){${phraseLen - 1}}\\w+)(?:\\s+\\1)+\\b`, 'gi');
     str = str.replace(pattern, '$1');
@@ -105,7 +130,6 @@ export function createRecognition({ onResult, onError, onEnd }) {
             const lowerCommitted = currentCleanCommitted.toLowerCase();
             const lowerChunk = chunk.toLowerCase();
 
-            // Mobile Chrome/Android safeguard: Do not re-append if current committed text already ends with this chunk
             if (!lowerCommitted.endsWith(lowerChunk) && !lowerCommitted.includes(lowerChunk)) {
               sessionCommittedText = (sessionCommittedText + ' ' + chunk).trim();
             }
@@ -201,7 +225,6 @@ function startSegment() {
     ? 'audio/mp4'
     : 'audio/aac';
 
-  // Closure-scoped private chunks array for this specific recorder instance
   const instanceChunks = [];
   const recorder = new MediaRecorder(mediaStream, { mimeType });
 
@@ -250,12 +273,11 @@ function startSegment() {
   currentSegmentRecorder = recorder;
   recorder.start(500);
 
-  // Auto-rotate segment every 45s: stop current recorder cleanly (triggering its onstop handler) & start fresh segment
   clearTimeout(segmentRotateTimer);
   segmentRotateTimer = setTimeout(() => {
     if (isListening && currentSegmentRecorder === recorder && recorder.state === 'recording') {
-      recorder.stop(); // Stops this instance cleanly, firing its onstop handler
-      startSegment();  // Starts a fresh recorder instance with its own isolated chunks array
+      recorder.stop();
+      startSegment();
     }
   }, 45000);
 }
@@ -269,6 +291,7 @@ export async function startListening(isNewSession = false) {
     segmentPromises = [];
   }
   isListening = true;
+  acquireWakeLock();
 
   if (recognition) {
     try {
@@ -277,7 +300,6 @@ export async function startListening(isNewSession = false) {
     return;
   }
 
-  // MediaRecorder Fallback for Safari & Firefox
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     try {
       if (!mediaStream) {
@@ -299,6 +321,7 @@ export async function startListening(isNewSession = false) {
 export async function stopListening() {
   isListening = false;
   clearTimeout(segmentRotateTimer);
+  releaseWakeLock();
 
   if (recognition) {
     try {
@@ -326,6 +349,7 @@ export async function stopListening() {
 export function destroyRecognition() {
   isListening = false;
   clearTimeout(segmentRotateTimer);
+  releaseWakeLock();
   sessionCommittedText = '';
   whisperCommittedText = '';
   lastFinalText = '';
