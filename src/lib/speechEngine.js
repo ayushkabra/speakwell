@@ -1,8 +1,8 @@
 /**
  * speechEngine.js — Universal Speech Recognition Engine
- * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop)
+ * Native Web Speech API for Chrome/Edge (with 60s keep-alive loop & mobile duplication protection)
  * + MediaRecorder & Groq Whisper API fallback for Safari & Firefox ($0 Cost).
- * Isolated Closure-Scoped 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
+ * Continuous 45s MediaRecorder Segment Rotation ensures 100% valid headers & payload limits.
  * All segment promises are tracked in segmentPromises array & awaited via Promise.all on stopListening().
  */
 
@@ -12,6 +12,7 @@ let recognition = null;
 let isListening = false;
 let sessionCommittedText = '';
 let lastFinalText = '';
+let processedFinalIndices = new Set();
 
 let whisperCommittedText = ''; // Module-level whisper accumulation across pause/resume & rotation segments
 let mediaStream = null;
@@ -30,15 +31,18 @@ export function hasNativeSpeechRecognition() {
 
 /**
  * Universal Multi-Stage Zero-Duplication Pipeline
+ * Strips compounding repetitive phrases caused by Mobile Web Speech API restarts
  */
 export function deduplicateSpeechText(text) {
   if (!text || !text.trim()) return '';
   let str = text.trim();
 
+  // Strip consecutive repeated words ("guitar guitar" -> "guitar")
   str = str.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
 
-  for (let phraseLen = 10; phraseLen >= 2; phraseLen--) {
-    const pattern = new RegExp(`\\b((?:\\w+\\s+){${phraseLen - 1}}\\w+)\\s+\\1\\b`, 'gi');
+  // Strip repeated sentence blocks ("I have recently started learning guitar I have recently started learning guitar" -> "I have recently started learning guitar")
+  for (let phraseLen = 15; phraseLen >= 2; phraseLen--) {
+    const pattern = new RegExp(`\\b((?:\\w+\\s+){${phraseLen - 1}}\\w+)(?:\\s+\\1)+\\b`, 'gi');
     str = str.replace(pattern, '$1');
   }
 
@@ -51,7 +55,7 @@ export function deduplicateSpeechText(text) {
       cleanedWords.push(words[i]);
 
       let matchedLength = 0;
-      for (let len = Math.min(8, cleanedWords.length); len >= 1; len--) {
+      for (let len = Math.min(12, cleanedWords.length); len >= 1; len--) {
         const tail = cleanedWords.slice(-len).map((w) => w.toLowerCase()).join(' ');
         const next = words.slice(i + 1, i + 1 + len).map((w) => w.toLowerCase()).join(' ');
 
@@ -71,12 +75,7 @@ export function deduplicateSpeechText(text) {
     str = cleanedWords.join(' ');
   }
 
-  str = str
-    .replace(/\b(\w+)\s+\1\b/gi, '$1')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-
-  return str;
+  return str.replace(/\s{2,}/g, ' ').trim();
 }
 
 export function createRecognition({ onResult, onError, onEnd }) {
@@ -90,25 +89,35 @@ export function createRecognition({ onResult, onError, onEnd }) {
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (e) => {
-      let currentFinal = '';
       let currentInterim = '';
 
-      for (let i = 0; i < e.results.length; i++) {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
-        const chunk = res[0]?.transcript || '';
+        const chunk = (res[0]?.transcript || '').trim();
+
+        if (!chunk) continue;
 
         if (res.isFinal) {
-          currentFinal += chunk + ' ';
+          if (!processedFinalIndices.has(i)) {
+            processedFinalIndices.add(i);
+
+            const currentCleanCommitted = sessionCommittedText.trim();
+            const lowerCommitted = currentCleanCommitted.toLowerCase();
+            const lowerChunk = chunk.toLowerCase();
+
+            // Mobile Chrome/Android safeguard: Do not re-append if current committed text already ends with this chunk
+            if (!lowerCommitted.endsWith(lowerChunk) && !lowerCommitted.includes(lowerChunk)) {
+              sessionCommittedText = (sessionCommittedText + ' ' + chunk).trim();
+            }
+          }
         } else {
-          currentInterim += chunk;
+          currentInterim += chunk + ' ';
         }
       }
 
-      const fullRawFinal = (sessionCommittedText + ' ' + currentFinal).trim();
-      lastFinalText = fullRawFinal;
-
-      const cleanFinal = deduplicateSpeechText(fullRawFinal);
+      const cleanFinal = deduplicateSpeechText(sessionCommittedText);
       const cleanInterim = deduplicateSpeechText(currentInterim);
+      lastFinalText = cleanFinal;
 
       onResult?.({
         finalText: cleanFinal,
@@ -131,9 +140,7 @@ export function createRecognition({ onResult, onError, onEnd }) {
 
     recognition.onend = () => {
       if (isListening) {
-        if (lastFinalText) {
-          sessionCommittedText = lastFinalText;
-        }
+        processedFinalIndices.clear();
         setTimeout(() => {
           if (isListening && recognition) {
             try {
@@ -148,7 +155,7 @@ export function createRecognition({ onResult, onError, onEnd }) {
     return recognition;
   }
 
-  // Fallback for Safari/Firefox: Setup MediaRecorder
+  // Fallback for Safari/Firefox/Mobile: Setup MediaRecorder
   return {
     isFallback: true,
   };
@@ -216,7 +223,13 @@ function startSegment() {
 
           const segmentText = await sendWhisperChunk(blob, mimeType);
           if (segmentText) {
-            whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
+            const currentCleanWhisper = whisperCommittedText.trim();
+            const lowerWhisper = currentCleanWhisper.toLowerCase();
+            const lowerSeg = segmentText.trim().toLowerCase();
+
+            if (!lowerWhisper.endsWith(lowerSeg) && !lowerWhisper.includes(lowerSeg)) {
+              whisperCommittedText = (whisperCommittedText + ' ' + segmentText).trim();
+            }
             const cleanFinal = deduplicateSpeechText(whisperCommittedText);
             lastFinalText = cleanFinal;
 
@@ -252,6 +265,7 @@ export async function startListening(isNewSession = false) {
     sessionCommittedText = '';
     whisperCommittedText = '';
     lastFinalText = '';
+    processedFinalIndices.clear();
     segmentPromises = [];
   }
   isListening = true;
@@ -315,6 +329,7 @@ export function destroyRecognition() {
   sessionCommittedText = '';
   whisperCommittedText = '';
   lastFinalText = '';
+  processedFinalIndices.clear();
   segmentPromises = [];
   activeCallbacks = null;
 
