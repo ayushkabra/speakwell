@@ -59,11 +59,19 @@ export const PRESET_PACKS = [
  */
 export const TOPIC_BANK = {
   easy: [
+    { text: 'Who is your favorite actor or movie star and what do you admire about their acting?', category: 'Entertainment' },
+    { text: 'The story of your first crush and what you remember about that time.', category: 'Personal Story' },
+    { text: 'Who is your best friend and what makes your bond so special?', category: 'Friendship' },
+    { text: 'What is the single biggest life lesson you have learned so far?', category: 'Life Wisdom' },
+    { text: 'What is your comfort food and where was the best meal of your life?', category: 'Fun' },
     { text: 'Talk about your favorite movie or book and why you recommend it.', category: 'Personal' },
-    { text: 'If you could travel anywhere in the world tomorrow, where would you go and why?', category: 'Personal' },
+    { text: 'If you could travel anywhere in the world tomorrow, where would you go and why?', category: 'Travel' },
     { text: 'What does your ideal weekend look like from start to finish?', category: 'Lifestyle' },
     { text: 'Describe a new hobby or skill you recently started or want to learn.', category: 'Learning' },
-    { text: 'What is one dish or cuisine you could eat every day for the rest of your life?', category: 'Fun' },
+    { text: 'What is a guilty pleasure or quirky habit that most people don’t know about you?', category: 'Personal' },
+    { text: 'What song or artist do you listen to when you need an instant mood boost?', category: 'Music' },
+    { text: 'Tell me about the funniest or most unexpected thing that happened to you recently.', category: 'Humor' },
+    { text: 'What is one piece of advice you would give to your 16-year-old self?', category: 'Reflection' },
     { text: 'Tell me about your favorite childhood memory or mentor.', category: 'Personal' },
     { text: 'What is your morning routine and how does it set up your day?', category: 'Lifestyle' },
   ],

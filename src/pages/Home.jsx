@@ -1,20 +1,29 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
+import { loginWithGoogle, trackAnalyticsEvent } from '../lib/firebase';
 
 const TOPIC_REEL = [
+  'Who is your favorite actor or movie star and your favorite movie of theirs?',
+  'The story of your first crush and what you remember about it',
+  'Who is your best friend and what makes your bond so special?',
+  'The single biggest life lesson you have learned so far',
+  'What is your all-time comfort food and where was your best meal?',
+  'If you could wake up anywhere in the world tomorrow, where would you go?',
+  'A quirky habit or guilty pleasure most people don’t know about you',
+  'What song or music artist do you listen to for an instant mood lift?',
+  'Describe the funniest or most unexpected thing that happened to you recently',
+  'One piece of advice you would give to your 16-year-old self',
+  'What does your dream weekend look like from Friday to Sunday?',
+  'A hobby or skill you would love to master if you had unlimited free time',
+  'Your favorite season of the year and what you love most about it',
+  'A teacher, mentor, or family member who changed the way you think',
+  'What is one small daily habit that completely changed your life?',
   'Should AI replace human teachers in classrooms?',
   'Remote work vs In-office work: how to balance both?',
   'Why 90% of tech startups fail in their first 18 months',
-  'How to pitch a complex startup idea in under 60 seconds',
-  'Should artificial intelligence be granted copyright ownership?',
-  'The ethics of autonomous decision-making in critical tech',
   'How to handle high-stakes counter-arguments in a debate',
   'What makes a great leader during times of sudden crisis?',
-  'Is social media doing more harm than good to authentic communication?',
-  'How to build genuine rapport with an audience instantly',
-  'The role of failure in executive career progression',
-  'Should college education be free for everyone?',
 ];
 
 function fmt(s) {
@@ -35,7 +44,27 @@ export default function Home() {
   const setCustomContext = useSessionStore((s) => s.setCustomContext);
   const setSessionType = useSessionStore((s) => s.setSessionType);
 
+  const user = useSessionStore((s) => s.user);
   const stats = getStats();
+
+  const [showWelcomeNudge, setShowWelcomeNudge] = useState(() => {
+    return !localStorage.getItem('speakwell_welcome_dismissed');
+  });
+
+  const handleDismissNudge = () => {
+    localStorage.setItem('speakwell_welcome_dismissed', 'true');
+    setShowWelcomeNudge(false);
+  };
+
+  const handleNudgeSignIn = async () => {
+    trackAnalyticsEvent('welcome_nudge_login_clicked');
+    try {
+      await loginWithGoogle();
+      setShowWelcomeNudge(false);
+    } catch (err) {
+      console.warn('Sign in notice:', err);
+    }
+  };
 
   const [currentTopic, setCurrentTopic] = useState(TOPIC_REEL[0]);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -70,6 +99,40 @@ export default function Home() {
 
   return (
     <div className="animate-fade-up w-full max-w-[820px] mx-auto px-6 pt-24 pb-24 text-center">
+      {/* FIRST-TIME WELCOME NUDGE */}
+      {!user && showWelcomeNudge && (
+        <div className="mb-8 p-4 sm:p-4.5 bg-[#161c1a]/95 border border-[#c47a4a]/40 rounded-[20px] shadow-[0_12px_32px_rgba(0,0,0,0.4)] flex items-center justify-between gap-4 text-left relative backdrop-blur-md animate-fade-up">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-[#c47a4a]/15 text-[#c47a4a] flex items-center justify-center text-[20px] shrink-0 border border-[#c47a4a]/25">
+              👋
+            </div>
+            <div>
+              <div className="text-[13px] font-medium text-[#f4e8d6]">
+                Welcome to Speakwell!
+              </div>
+              <div className="text-[12px] text-[#f4e8d6]/65 leading-[1.4]">
+                Practice speaking out loud with zero judgment. No signup needed to try — or sign in to save your lifetime history.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleNudgeSignIn}
+              className="px-3.5 py-1.5 rounded-full bg-[#c47a4a] text-[#1a1612] text-[12px] font-semibold cursor-pointer hover:bg-[#e0925c] transition-all whitespace-nowrap shadow-sm"
+            >
+              Sign In 🌐
+            </button>
+            <button
+              onClick={handleDismissNudge}
+              className="text-[#f4e8d6]/40 hover:text-[#f4e8d6] bg-transparent border-none text-[16px] cursor-pointer p-1"
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* BRAND & CENTERED HERO STAGE */}
       <div className="mb-12">
         <div className="text-[11px] tracking-[0.22em] uppercase text-[#c47a4a] mb-3 font-semibold">

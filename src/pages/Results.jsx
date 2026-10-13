@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
 import ScoreHero from '../components/ScoreHero';
 import MetricCard from '../components/MetricCard';
 import { getScoreNote } from '../lib/metricsEngine';
+import { loginWithGoogle, trackAnalyticsEvent } from '../lib/firebase';
 
 function fmt(s) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -68,6 +69,34 @@ export default function Results() {
   const isLadder = sessionType === 'ladder';
   const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
+  const user = useSessionStore((s) => s.user);
+  const [showSignupModal, setShowSignupModal] = useState(() => {
+    return !user && !localStorage.getItem('speakwell_signup_modal_seen');
+  });
+
+  useEffect(() => {
+    if (!user && showSignupModal) {
+      trackAnalyticsEvent('first_session_modal_shown');
+    }
+  }, [user, showSignupModal]);
+
+  const handleCloseSignupModal = () => {
+    localStorage.setItem('speakwell_signup_modal_seen', 'true');
+    setShowSignupModal(false);
+    trackAnalyticsEvent('first_session_modal_dismissed');
+  };
+
+  const handleSignupFromModal = async () => {
+    trackAnalyticsEvent('first_session_modal_signup_clicked');
+    try {
+      await loginWithGoogle();
+      setShowSignupModal(false);
+      localStorage.setItem('speakwell_signup_modal_seen', 'true');
+    } catch (err) {
+      console.warn('Sign in notice:', err);
+    }
+  };
+
   const handleCopyText = (content) => {
     if (!content) return;
     const cleanText = String(content).replace(/\*\*/g, '');
@@ -89,6 +118,47 @@ export default function Results() {
 
   return (
     <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-20 max-[768px]:px-5 relative">
+      {/* FIRST SESSION CELEBRATION & CLOUD SYNC MODAL */}
+      {!user && showSignupModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-up">
+          <div className="bg-[#161c1a] border border-[#c47a4a80] rounded-[24px] max-w-[480px] w-full p-7 sm:p-8 text-center shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative">
+            <button
+              onClick={handleCloseSignupModal}
+              className="absolute top-4 right-4 text-[#f4e8d6]/40 hover:text-[#f4e8d6] bg-transparent border-none text-[20px] cursor-pointer p-1"
+              title="Close"
+            >
+              ✕
+            </button>
+            <div className="w-16 h-16 rounded-full bg-[#c47a4a]/15 border border-[#c47a4a]/40 text-[30px] flex items-center justify-center mx-auto mb-4 animate-bounce">
+              🎉
+            </div>
+            <div className="text-[11px] tracking-[0.2em] uppercase text-[#c47a4a] font-semibold mb-2">
+              Hooray! First Session Complete
+            </div>
+            <h3 className="font-serif text-[26px] text-[#f4e8d6] font-normal leading-[1.2] mb-3">
+              Congratulations on your first speech session!
+            </h3>
+            <p className="text-[14px] text-[#f4e8d6]/75 leading-[1.6] mb-6">
+              Your real-time filler breakdown, delivery metrics, and AI master script rewrite are ready. To save your speech history to the cloud and track your growth over time, sign in with Google.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleSignupFromModal}
+                className="w-full py-3.5 px-6 rounded-full bg-[#c47a4a] text-[#1a1612] font-semibold text-[14px] cursor-pointer transition-all hover:bg-[#e0925c] active:scale-95 shadow-[0_10px_28px_rgba(196,122,74,0.4)] flex items-center justify-center gap-2"
+              >
+                <span>🌐</span> Save My Progress — Sign In with Google
+              </button>
+              <button
+                onClick={handleCloseSignupModal}
+                className="w-full py-2.5 text-[#f4e8d6]/50 hover:text-[#f4e8d6] text-[13px] bg-transparent border-none cursor-pointer transition-colors"
+              >
+                Continue as Guest for now →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Copied Toast Notification */}
       {copied && (
         <div className="fixed bottom-6 right-6 bg-accent text-[#0e0e0d] font-medium px-4 py-2.5 rounded-xl shadow-2xl z-50 text-[13px] animate-fade-up flex items-center gap-2">
