@@ -18,22 +18,40 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
-let analytics = null;
-if (typeof window !== 'undefined') {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
+let analyticsInstance = null;
+const analyticsPromise = (typeof window !== 'undefined')
+  ? isSupported().then((supported) => {
+      if (supported) {
+        analyticsInstance = getAnalytics(app);
+        return analyticsInstance;
+      }
+      return null;
+    }).catch(() => null)
+  : Promise.resolve(null);
+
+export async function trackAnalyticsEvent(eventName, eventParams = {}) {
+  try {
+    const inst = analyticsInstance || await analyticsPromise;
+    if (inst) {
+      logEvent(inst, eventName, eventParams);
     }
-  }).catch(() => {});
+  } catch (err) {
+    console.warn('Analytics event warning:', err);
+  }
 }
 
-export function trackAnalyticsEvent(eventName, eventParams = {}) {
-  if (analytics) {
-    try {
-      logEvent(analytics, eventName, eventParams);
-    } catch (err) {
-      console.warn('Analytics event warning:', err);
+export async function trackPageView(pagePath, pageTitle) {
+  try {
+    const inst = analyticsInstance || await analyticsPromise;
+    if (inst) {
+      logEvent(inst, 'page_view', {
+        page_path: pagePath,
+        page_location: window.location.href,
+        page_title: pageTitle || document.title,
+      });
     }
+  } catch (err) {
+    console.warn('Analytics page_view warning:', err);
   }
 }
 

@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Topbar from './components/Topbar';
 import Tooltip from './components/Tooltip';
 import ScrollToTop from './components/ScrollToTop';
+import AnalyticsTracker from './components/AnalyticsTracker';
 import Home from './pages/Home';
 import Context from './pages/Context';
 import Record from './pages/Record';
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <AnalyticsTracker />
       <Topbar />
       <div className="pt-[60px] min-h-screen flex flex-col items-center">
         <Routes>
