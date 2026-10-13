@@ -43,9 +43,21 @@ export default function Results() {
   const navigate = useNavigate();
   const session = useSessionStore((s) => s.currentSession);
   const setScriptSetup = useSessionStore((s) => s.setScriptSetup);
+  const user = useSessionStore((s) => s.user);
+  const sessions = useSessionStore((s) => s.sessions);
+
   const [activeTab, setActiveTab] = useState('compare'); // Default: Side-by-side comparison ↔
   const [expandedQuestion, setExpandedQuestion] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(() => {
+    return !user && sessions.length === 1 && !localStorage.getItem('speakwell_signup_modal_seen');
+  });
+
+  useEffect(() => {
+    if (!user && showSignupModal) {
+      trackAnalyticsEvent('first_session_modal_shown');
+    }
+  }, [user, showSignupModal]);
 
   if (!session) {
     return (
@@ -68,18 +80,6 @@ export default function Results() {
   const isSlide = sessionType === 'slide';
   const isLadder = sessionType === 'ladder';
   const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
-
-  const user = useSessionStore((s) => s.user);
-  const sessions = useSessionStore((s) => s.sessions);
-  const [showSignupModal, setShowSignupModal] = useState(() => {
-    return !user && sessions.length === 1 && !localStorage.getItem('speakwell_signup_modal_seen');
-  });
-
-  useEffect(() => {
-    if (!user && showSignupModal) {
-      trackAnalyticsEvent('first_session_modal_shown');
-    }
-  }, [user, showSignupModal]);
 
   const handleCloseSignupModal = () => {
     localStorage.setItem('speakwell_signup_modal_seen', 'true');
