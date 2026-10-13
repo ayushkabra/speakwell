@@ -72,10 +72,10 @@ export async function setUserAnalyticsContext(user) {
   }
 }
 
-export async function loginWithGoogle() {
+export async function loginWithGoogle(source = 'topbar') {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    trackAnalyticsEvent('login', { method: 'google' });
+    trackAnalyticsEvent('login', { method: 'google', source });
     return result.user;
   } catch (err) {
     console.warn('Popup sign in failed or blocked, trying redirect:', err);

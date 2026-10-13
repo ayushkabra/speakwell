@@ -70,8 +70,9 @@ export default function Results() {
   const isDrill = isFramework || isSlide || isLadder || sessionType === 'drill' || (drillAnswers && drillAnswers.length > 0);
 
   const user = useSessionStore((s) => s.user);
+  const sessions = useSessionStore((s) => s.sessions);
   const [showSignupModal, setShowSignupModal] = useState(() => {
-    return !user && !localStorage.getItem('speakwell_signup_modal_seen');
+    return !user && sessions.length === 1 && !localStorage.getItem('speakwell_signup_modal_seen');
   });
 
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function Results() {
   const handleSignupFromModal = async () => {
     trackAnalyticsEvent('first_session_modal_signup_clicked');
     try {
-      await loginWithGoogle();
+      await loginWithGoogle('first_session_modal');
       setShowSignupModal(false);
       localStorage.setItem('speakwell_signup_modal_seen', 'true');
     } catch (err) {

@@ -26,7 +26,7 @@ export default function Topbar() {
       await logoutUser();
     } else {
       try {
-        await loginWithGoogle();
+        await loginWithGoogle('topbar');
       } catch (err) {
         console.warn('Google sign in error:', err);
       }

@@ -59,7 +59,7 @@ export default function Home() {
   const handleNudgeSignIn = async () => {
     trackAnalyticsEvent('welcome_nudge_login_clicked');
     try {
-      await loginWithGoogle();
+      await loginWithGoogle('welcome_nudge');
       setShowWelcomeNudge(false);
     } catch (err) {
       console.warn('Sign in notice:', err);
