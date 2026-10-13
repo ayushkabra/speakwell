@@ -7,6 +7,8 @@
  * Mobile Screen WakeLock & Page Visibility Safeguards included.
  */
 
+import { trackAnalyticsEvent } from './firebase';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://speakwell-five.vercel.app';
 
 let recognition = null;
@@ -289,6 +291,7 @@ export async function startListening(isNewSession = false) {
     lastFinalText = '';
     processedFinalIndices.clear();
     segmentPromises = [];
+    trackAnalyticsEvent('speech_recording_started');
   }
   isListening = true;
   acquireWakeLock();

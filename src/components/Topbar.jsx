@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
-import { loginWithGoogle, logoutUser, onAuthStateChanged, auth } from '../lib/firebase';
+import { loginWithGoogle, logoutUser, onAuthStateChanged, auth, setUserAnalyticsContext } from '../lib/firebase';
 
 export default function Topbar() {
   const location = useLocation();
@@ -12,8 +12,10 @@ export default function Topbar() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setUserAnalyticsContext(currentUser);
       } else {
         setUser(null);
+        setUserAnalyticsContext(null);
       }
     });
     return () => unsubscribe();

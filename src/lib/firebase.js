@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
-import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
+import { getAnalytics, isSupported, logEvent, setUserId, setUserProperties } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCFSaBwk4J6S5a0oq5mesjUiYsKd5MhGi0",
@@ -52,6 +52,23 @@ export async function trackPageView(pagePath, pageTitle) {
     }
   } catch (err) {
     console.warn('Analytics page_view warning:', err);
+  }
+}
+
+export async function setUserAnalyticsContext(user) {
+  try {
+    const inst = analyticsInstance || await analyticsPromise;
+    if (inst) {
+      if (user?.uid) {
+        setUserId(inst, user.uid);
+        setUserProperties(inst, { user_type: 'registered' });
+      } else {
+        setUserId(inst, null);
+        setUserProperties(inst, { user_type: 'guest' });
+      }
+    }
+  } catch (err) {
+    console.warn('User analytics context warning:', err);
   }
 }
 
