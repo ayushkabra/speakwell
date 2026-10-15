@@ -301,6 +301,7 @@ export default function DrillRecord() {
                 Question {currentDrillIndex + 1} of {totalQuestions}
               </span>
             </div>
+          </div>
 
           <div className="p-6 bg-surface2/60 border border-border rounded-xl">
             <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
