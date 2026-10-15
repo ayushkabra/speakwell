@@ -89,7 +89,7 @@ export default function Home() {
     setSessionType('free');
     setContext(currentTopic);
     setCustomContext(`Speaking on prompt: "${currentTopic}"`);
-    navigate('/record');
+    navigate('/record', { state: { timerSecs: 60 } });
   };
 
   const handleSessionClick = (session) => {

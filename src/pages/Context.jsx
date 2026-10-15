@@ -55,7 +55,7 @@ export default function Context() {
     if (overrideContext) {
       setCustomContext(overrideContext);
     }
-    navigate('/record');
+    navigate('/record', { state: { timerSecs: selectedTimer } });
   };
 
   return (

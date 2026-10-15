@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useSessionStore from '../store/useSessionStore';
 import WaveForm from '../components/WaveForm';
+import CountdownClock from '../components/CountdownClock';
 import {
   isSpeechSupported,
   createRecognition,
@@ -11,6 +12,13 @@ import {
 } from '../lib/speechEngine';
 import { computeMetrics, annotateTranscript, checkGrammarWithLanguageTool } from '../lib/metricsEngine';
 import { polishTranscript } from '../lib/apiClient';
+import {
+  playCountdownPing,
+  playCompletionChime,
+  playStartTone,
+  isSoundMuted,
+  setSoundMuted,
+} from '../lib/soundEffects';
 
 function fmt(s) {
   const m = Math.floor(s / 60);
@@ -28,6 +36,7 @@ const TIMER_PRESETS = [
 
 export default function Record() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const selectedContext = useSessionStore((s) => s.selectedContext);
   const customContext = useSessionStore((s) => s.customContext);
@@ -35,16 +44,22 @@ export default function Record() {
   const setProcessing = useSessionStore((s) => s.setProcessing);
   const setProcessingStep = useSessionStore((s) => s.setProcessingStep);
 
+  const initialTimer = location.state?.timerSecs ?? 0;
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [timerSecs, setTimerSecs] = useState(0);
+  const [timerSecs, setTimerSecs] = useState(initialTimer);
   const [elapsed, setElapsed] = useState(0);
   const [timerHidden, setTimerHidden] = useState(false);
   const [finalText, setFinalText] = useState('');
   const [interimText, setInterimText] = useState('');
   const [speechSupported, setSpeechSupported] = useState(true);
   const [showNotice, setShowNotice] = useState('');
-  const [activePreset, setActivePreset] = useState(4);
+  const [activePreset, setActivePreset] = useState(() => {
+    const idx = TIMER_PRESETS.findIndex((p) => p.secs === initialTimer);
+    return idx !== -1 ? idx : 4;
+  });
+  const [isMuted, setIsMuted] = useState(() => isSoundMuted());
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') === 'true');
 
   const timerRef = useRef(null);
   const finalTextRef = useRef('');
@@ -79,15 +94,38 @@ export default function Record() {
     });
   }, []);
 
+  const handleStopRef = useRef();
+
+  const handleToggleFocusMode = () => {
+    const next = !focusMode;
+    setFocusMode(next);
+    localStorage.setItem('speakwell_focus_mode', next ? 'true' : 'false');
+  };
+
+  const handleToggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    setSoundMuted(next);
+  };
+
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
         setElapsed((prev) => {
           const next = prev + 1;
           elapsedRef.current = next;
-          if (timerSecs > 0 && next >= timerSecs) {
-            handleStop();
+
+          if (timerSecs > 0) {
+            const remaining = timerSecs - next;
+            if (remaining === 10 || (remaining <= 3 && remaining > 0)) {
+              playCountdownPing(remaining <= 3 ? 880 : 660);
+            }
+            if (next >= timerSecs) {
+              playCompletionChime();
+              handleStopRef.current?.();
+            }
           }
+
           return next;
         });
       }, 1000);
@@ -112,6 +150,7 @@ export default function Record() {
     finalTextRef.current = '';
     elapsedRef.current = 0;
 
+    playStartTone();
     setupRecognition();
     startListening(true);
   };
@@ -258,20 +297,16 @@ export default function Record() {
             </div>
           )}
 
-          <div
-            onClick={() => setTimerHidden(!timerHidden)}
-            className={`font-serif text-[68px] sm:text-[76px] leading-none tracking-[-0.03em] cursor-pointer select-none transition-all duration-300 mb-1 ${
-              isWarning ? 'text-orange animate-pulse' : 'text-text'
-            } ${timerHidden ? 'opacity-[0.08]' : ''}`}
-          >
-            {displayTime()}
-          </div>
-          <div
-            onClick={() => setTimerHidden(!timerHidden)}
-            className="text-[10px] text-text3 tracking-[0.14em] uppercase cursor-pointer mb-5"
-          >
-            tap to {timerHidden ? 'show' : 'hide'} timer
-          </div>
+          <CountdownClock
+            timeRemaining={timerSecs > 0 ? Math.max(0, timerSecs - elapsed) : elapsed}
+            totalSecs={timerSecs}
+            isRecording={isRecording}
+            isPaused={isPaused}
+            isTimerHidden={timerHidden}
+            onToggleHidden={() => setTimerHidden(!timerHidden)}
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+          />
 
           <div className="mb-5 w-full flex flex-col items-center">
             <WaveForm isActive={isRecording && !isPaused} />
@@ -339,7 +374,7 @@ export default function Record() {
 
         <div className="bg-surface border border-border-md rounded-2xl p-6 max-[768px]:p-5 shadow-xl flex flex-col justify-between min-h-[360px]">
           <div>
-            <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-3">
+            <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-3 flex-wrap gap-2">
               <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
                 <span>Live Spoken Transcript</span>
                 {isRecording && (
@@ -347,28 +382,55 @@ export default function Record() {
                 )}
               </div>
               <div className="flex items-center gap-2.5 text-[12px] font-mono text-text3">
-                <span>Words: <strong className="text-text">{wordCount}</strong></span>
+                <button
+                  onClick={handleToggleFocusMode}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border cursor-pointer font-sans transition-all flex items-center gap-1.5 ${
+                    focusMode
+                      ? 'bg-accent/15 border-accent text-accent font-medium shadow-sm'
+                      : 'bg-surface2/60 border-border text-text3 hover:text-text'
+                  }`}
+                  title="Hide live transcript while speaking to focus and reduce anxiety"
+                >
+                  <span>{focusMode ? '👁️‍🗨️' : '👁️'}</span>
+                  <span>{focusMode ? 'Focus Mode ON' : 'Hide Live Text'}</span>
+                </button>
                 <span>·</span>
-                <span>Time: <strong className="text-text">{fmt(elapsed)}</strong></span>
+                <span>Words: <strong className="text-text">{wordCount}</strong></span>
               </div>
             </div>
 
-            <div
-              ref={liveRef}
-              className="font-sans text-[15px] sm:text-[16px] leading-[1.85] text-text2 italic text-left min-h-[220px] max-h-[360px] overflow-y-auto pr-1"
-            >
-              {finalText || interimText ? (
-                <>
-                  <span className="text-text font-normal">{finalText}</span>
-                  <span className="text-text3"> {interimText}</span>
-                </>
-              ) : (
-                <div className="h-[200px] flex flex-col items-center justify-center text-center text-text3 italic">
-                  <span className="text-[28px] mb-2 opacity-50">🎙️</span>
-                  <span>Your live spoken words will stream here in real-time as you talk.</span>
-                </div>
-              )}
-            </div>
+            {focusMode ? (
+              <div className="h-[220px] flex flex-col items-center justify-center text-center p-6 text-text3">
+                <span className="text-[34px] mb-2 animate-pulse">🧘</span>
+                <h4 className="text-text font-serif text-[18px] mb-1 font-normal">Focus Mode Active</h4>
+                <p className="text-[13px] text-text3 max-w-[290px] leading-[1.6]">
+                  Your speech is recording privately in the background. Speak naturally without self-editing!
+                </p>
+                <button
+                  onClick={handleToggleFocusMode}
+                  className="mt-3 text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  👁️ Reveal Live Transcript
+                </button>
+              </div>
+            ) : (
+              <div
+                ref={liveRef}
+                className="font-sans text-[15px] sm:text-[16px] leading-[1.85] text-text2 italic text-left min-h-[220px] max-h-[360px] overflow-y-auto pr-1"
+              >
+                {finalText || interimText ? (
+                  <>
+                    <span className="text-text font-normal">{finalText}</span>
+                    <span className="text-text3"> {interimText}</span>
+                  </>
+                ) : (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-center text-text3 italic">
+                    <span className="text-[28px] mb-2 opacity-50">🎙️</span>
+                    <span>Your live spoken words will stream here in real-time as you talk.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-3 pt-3 border-t border-border/40 text-[11px] sm:text-[12px] text-text3 flex items-center justify-between">

@@ -5,6 +5,14 @@ import { createRecognition, isSpeechSupported, startListening, stopListening, de
 import { computeMetrics, annotateTranscript, checkGrammarWithLanguageTool } from '../lib/metricsEngine';
 import { polishTranscript } from '../lib/apiClient';
 import WaveForm from '../components/WaveForm';
+import CountdownClock from '../components/CountdownClock';
+import {
+  playCountdownPing,
+  playCompletionChime,
+  playStartTone,
+  isSoundMuted,
+  setSoundMuted,
+} from '../lib/soundEffects';
 
 function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -27,6 +35,9 @@ export default function DrillRecord() {
   const [elapsed, setElapsed] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(drillTimerSecs);
   const [hasSpeechSupport, setHasSpeechSupport] = useState(true);
+  const [timerHidden, setTimerHidden] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => isSoundMuted());
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') === 'true');
 
   const timerRef = useRef(null);
   const liveRef = useRef(null);
@@ -59,16 +70,32 @@ export default function DrillRecord() {
     };
   }, []);
 
+  const handleToggleFocusMode = () => {
+    const next = !focusMode;
+    setFocusMode(next);
+    localStorage.setItem('speakwell_focus_mode', next ? 'true' : 'false');
+  };
+
+  const handleToggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    setSoundMuted(next);
+  };
+
   useEffect(() => {
     if (isRecording) {
       timerRef.current = setInterval(() => {
         setElapsed((e) => e + 1);
         if (drillTimerSecs > 0) {
           setTimeRemaining((r) => {
-            if (r <= 1) {
-              return 0;
+            const next = r <= 1 ? 0 : r - 1;
+            if (next === 10 || (next <= 3 && next > 0)) {
+              playCountdownPing(next <= 3 ? 880 : 660);
             }
-            return r - 1;
+            if (r === 1) {
+              playCompletionChime();
+            }
+            return next;
           });
         }
       }, 1000);
@@ -91,6 +118,7 @@ export default function DrillRecord() {
     setElapsed(0);
     setTimeRemaining(drillTimerSecs);
     setIsRecording(true);
+    playStartTone();
     startListening();
   };
 
@@ -274,34 +302,6 @@ export default function DrillRecord() {
               </span>
             </div>
 
-            {drillTimerSecs > 0 && (
-              <div className="flex items-center gap-2">
-                {timeRemaining <= 3 && timeRemaining > 0 && isRecording && (
-                  <span className="text-[18px] font-bold text-amber-400 animate-bounce">
-                    {timeRemaining}...
-                  </span>
-                )}
-                <div
-                  className={`font-mono text-[14px] px-3.5 py-1 rounded-full border transition-all ${
-                    timeRemaining <= 3 && timeRemaining > 0
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold animate-pulse'
-                      : timeRemaining === 0
-                      ? 'bg-red-500/20 border-red-500 text-red-400 font-bold'
-                      : 'bg-surface border-border text-text'
-                  }`}
-                >
-                  ⏱ {fmtTime(timeRemaining)}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {drillTimerSecs > 0 && timeRemaining === 0 && isRecording && (
-            <div className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-[13px] leading-[1.5]">
-              ⏱ <strong>Time's up for target pace!</strong> Keep speaking to finish your thought, or click <em>Next Question →</em>.
-            </div>
-          )}
-
           <div className="p-6 bg-surface2/60 border border-border rounded-xl">
             <div className="text-[10px] tracking-[0.2em] uppercase text-text3 mb-2 font-medium">
               Current Practice Question
@@ -310,6 +310,24 @@ export default function DrillRecord() {
               "{currentQuestion}"
             </h2>
           </div>
+
+          <CountdownClock
+            timeRemaining={drillTimerSecs > 0 ? timeRemaining : elapsed}
+            totalSecs={drillTimerSecs}
+            isRecording={isRecording}
+            isPaused={false}
+            isTimerHidden={timerHidden}
+            onToggleHidden={() => setTimerHidden(!timerHidden)}
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+            size={160}
+          />
+
+          {drillTimerSecs > 0 && timeRemaining === 0 && isRecording && (
+            <div className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-[13px] leading-[1.5] text-center">
+              ⏱ <strong>Time's up for target pace!</strong> Keep speaking to finish your thought, or click <em>Next Question →</em>.
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 pt-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -366,37 +384,63 @@ export default function DrillRecord() {
 
         <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[460px]">
           <div>
-            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3 flex-wrap gap-2">
               <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
                 <span>Spoken Answer (Q{currentDrillIndex + 1})</span>
                 {isRecording && (
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
                 )}
               </div>
-              <div className="flex items-center gap-3 text-[12px] font-mono text-text3">
+              <div className="flex items-center gap-2.5 text-[12px] font-mono text-text3">
+                <button
+                  onClick={handleToggleFocusMode}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border cursor-pointer font-sans transition-all flex items-center gap-1.5 ${
+                    focusMode
+                      ? 'bg-accent/15 border-accent text-accent font-medium shadow-sm'
+                      : 'bg-surface2/60 border-border text-text3 hover:text-text'
+                  }`}
+                  title="Hide live transcript while speaking to focus and reduce anxiety"
+                >
+                  <span>{focusMode ? '👁️‍🗨️' : '👁️'}</span>
+                  <span>{focusMode ? 'Focus Mode ON' : 'Hide Live Text'}</span>
+                </button>
                 {isRecording && <WaveForm />}
                 <span>Words: <strong className="text-text">{wordCount}</strong></span>
-                <span>·</span>
-                <span>Time: <strong className="text-text">{fmtTime(elapsed)}</strong></span>
               </div>
             </div>
 
-            <div
-              ref={liveRef}
-              className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[340px] max-h-[420px] overflow-y-auto pr-2"
-            >
-              {transcript || interim ? (
-                <>
-                  <span className="text-text font-normal">{transcript}</span>
-                  <span className="text-text3"> {interim}</span>
-                </>
-              ) : (
-                <div className="h-[300px] flex flex-col items-center justify-center text-center text-text3 italic">
-                  <span className="text-[32px] mb-2 opacity-50">🎯</span>
-                  <span>Tap "Start Answer" and speak your answer to Question {currentDrillIndex + 1}.</span>
-                </div>
-              )}
-            </div>
+            {focusMode ? (
+              <div className="h-[320px] flex flex-col items-center justify-center text-center p-6 text-text3">
+                <span className="text-[34px] mb-2 animate-pulse">🧘</span>
+                <h4 className="text-text font-serif text-[18px] mb-1 font-normal">Focus Mode Active</h4>
+                <p className="text-[13px] text-text3 max-w-[320px] leading-[1.6]">
+                  Your answer is recording privately in the background. Speak naturally without self-editing!
+                </p>
+                <button
+                  onClick={handleToggleFocusMode}
+                  className="mt-3 text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  👁️ Reveal Live Transcript
+                </button>
+              </div>
+            ) : (
+              <div
+                ref={liveRef}
+                className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[340px] max-h-[420px] overflow-y-auto pr-2"
+              >
+                {transcript || interim ? (
+                  <>
+                    <span className="text-text font-normal">{transcript}</span>
+                    <span className="text-text3"> {interim}</span>
+                  </>
+                ) : (
+                  <div className="h-[300px] flex flex-col items-center justify-center text-center text-text3 italic">
+                    <span className="text-[32px] mb-2 opacity-50">🎯</span>
+                    <span>Tap "Start Answer" and speak your answer to Question {currentDrillIndex + 1}.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {!hasSpeechSupport && (

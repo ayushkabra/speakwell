@@ -5,6 +5,30 @@ import { createRecognition, isSpeechSupported, startListening, stopListening, de
 import { computeMetrics, annotateTranscript, checkGrammarWithLanguageTool } from '../lib/metricsEngine';
 import { polishTranscript, fetchLadderQuestion } from '../lib/apiClient';
 import WaveForm from '../components/WaveForm';
+import CountdownClock from '../components/CountdownClock';
+import {
+  playCountdownPing,
+  playCompletionChime,
+  playStartTone,
+  isSoundMuted,
+  setSoundMuted,
+} from '../lib/soundEffects';
+
+const LADDER_TIMER_PRESETS = [
+  { label: '30s', secs: 30 },
+  { label: '45s', secs: 45 },
+  { label: '60s', secs: 60 },
+  { label: '90s', secs: 90 },
+  { label: '∞ Free', secs: 0 },
+];
+
+const getDefaultLevelSecs = (lvl) => {
+  if (lvl === 1) return 30;
+  if (lvl === 2) return 45;
+  if (lvl === 3) return 60;
+  if (lvl === 4) return 90;
+  return 120;
+};
 
 function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -28,9 +52,29 @@ export default function LadderRecord() {
   const [transcript, setTranscript] = useState('');
   const [interim, setInterim] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [targetSecs, setTargetSecs] = useState(() => getDefaultLevelSecs(ladderLevel || 1));
+  const [timerHidden, setTimerHidden] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => isSoundMuted());
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') === 'true');
 
   const timerRef = useRef(null);
   const liveRef = useRef(null);
+
+  const handleToggleFocusMode = () => {
+    const next = !focusMode;
+    setFocusMode(next);
+    localStorage.setItem('speakwell_focus_mode', next ? 'true' : 'false');
+  };
+
+  const handleToggleMute = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    setSoundMuted(next);
+  };
+
+  useEffect(() => {
+    setTargetSecs(getDefaultLevelSecs(ladderLevel));
+  }, [ladderLevel]);
 
   useEffect(() => {
     if (!ladderDomain) {
@@ -75,12 +119,26 @@ export default function LadderRecord() {
 
   useEffect(() => {
     if (isRecording) {
-      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+      timerRef.current = setInterval(() => {
+        setElapsed((prev) => {
+          const next = prev + 1;
+          if (targetSecs > 0) {
+            const remaining = targetSecs - next;
+            if (remaining === 10 || (remaining <= 3 && remaining > 0)) {
+              playCountdownPing(remaining <= 3 ? 880 : 660);
+            }
+            if (remaining === 0) {
+              playCompletionChime();
+            }
+          }
+          return next;
+        });
+      }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [isRecording]);
+  }, [isRecording, targetSecs]);
 
   useEffect(() => {
     if (liveRef.current) liveRef.current.scrollTop = liveRef.current.scrollHeight;
@@ -91,6 +149,7 @@ export default function LadderRecord() {
     setInterim('');
     setElapsed(0);
     setIsRecording(true);
+    playStartTone();
     startListening();
   };
 
@@ -105,6 +164,7 @@ export default function LadderRecord() {
   };
 
   const handleNextLevel = async () => {
+    playCompletionChime();
     const whisperResult = await stopListening();
     setIsRecording(false);
 
@@ -213,6 +273,8 @@ export default function LadderRecord() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const wordCount = (transcript + ' ' + interim).trim().split(/\s+/).filter(Boolean).length;
+
   return (
     <div className="animate-fade-up w-full max-w-[1180px] mx-auto px-8 pt-8 pb-16 max-[768px]:px-5">
       <div className="grid grid-cols-[44%_56%] gap-8 items-start max-[900px]:grid-cols-1">
@@ -241,6 +303,42 @@ export default function LadderRecord() {
               </>
             )}
           </div>
+
+          {!isRecording && (
+            <div className="flex gap-2 justify-center flex-wrap">
+              {LADDER_TIMER_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => setTargetSecs(p.secs)}
+                  className={`text-[12px] px-3.5 py-1 border rounded-full cursor-pointer bg-transparent font-sans transition-all duration-[180ms] ${
+                    targetSecs === p.secs
+                      ? 'border-accent-border text-accent bg-accent-dim font-medium'
+                      : 'border-border-md text-text3 hover:border-border-hi hover:text-text'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <CountdownClock
+            timeRemaining={targetSecs > 0 ? Math.max(0, targetSecs - elapsed) : elapsed}
+            totalSecs={targetSecs}
+            isRecording={isRecording}
+            isPaused={false}
+            isTimerHidden={timerHidden}
+            onToggleHidden={() => setTimerHidden(!timerHidden)}
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+            size={160}
+          />
+
+          {targetSecs > 0 && targetSecs - elapsed <= 0 && isRecording && (
+            <div className="p-3 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-[12px] leading-[1.5] text-center">
+              ⏱ <strong>Target level pace reached!</strong> Wrap up and ascend to the next level.
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 pt-2">
             {!isRecording && !transcript ? (
@@ -281,30 +379,61 @@ export default function LadderRecord() {
 
         <div className="bg-surface border border-border-md rounded-2xl p-7 shadow-xl flex flex-col justify-between h-full min-h-[440px]">
           <div>
-            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3">
+            <div className="flex items-center justify-between mb-4 border-b border-border/60 pb-3 flex-wrap gap-2">
               <div className="text-[11px] tracking-[0.18em] uppercase text-text3 font-medium flex items-center gap-2">
                 <span>Spoken Answer (Level {ladderLevel})</span>
                 {isRecording && <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />}
               </div>
-              {isRecording && <WaveForm />}
+              <div className="flex items-center gap-2.5 text-[12px] font-mono text-text3">
+                <button
+                  onClick={handleToggleFocusMode}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border cursor-pointer font-sans transition-all flex items-center gap-1.5 ${
+                    focusMode
+                      ? 'bg-accent/15 border-accent text-accent font-medium shadow-sm'
+                      : 'bg-surface2/60 border-border text-text3 hover:text-text'
+                  }`}
+                  title="Hide live transcript while speaking to focus and reduce anxiety"
+                >
+                  <span>{focusMode ? '👁️‍🗨️' : '👁️'}</span>
+                  <span>{focusMode ? 'Focus Mode ON' : 'Hide Live Text'}</span>
+                </button>
+                {isRecording && <WaveForm />}
+                <span>Words: <strong className="text-text">{wordCount}</strong></span>
+              </div>
             </div>
 
-            <div
-              ref={liveRef}
-              className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[320px] max-h-[380px] overflow-y-auto pr-2"
-            >
-              {transcript || interim ? (
-                <>
-                  <span className="text-text font-normal">{transcript}</span>
-                  <span className="text-text3"> {interim}</span>
-                </>
-              ) : (
-                <div className="h-[280px] flex flex-col items-center justify-center text-center text-text3 italic">
-                  <span className="text-[32px] mb-2 opacity-50">🪜</span>
-                  <span>Speak your thoughts to master Level {ladderLevel}.</span>
-                </div>
-              )}
-            </div>
+            {focusMode ? (
+              <div className="h-[300px] flex flex-col items-center justify-center text-center p-6 text-text3">
+                <span className="text-[34px] mb-2 animate-pulse">🧘</span>
+                <h4 className="text-text font-serif text-[18px] mb-1 font-normal">Focus Mode Active</h4>
+                <p className="text-[13px] text-text3 max-w-[320px] leading-[1.6]">
+                  Your thoughts for Level {ladderLevel} are recording privately in the background. Speak naturally and confidently!
+                </p>
+                <button
+                  onClick={handleToggleFocusMode}
+                  className="mt-3 text-[12px] text-accent hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  👁️ Reveal Live Transcript
+                </button>
+              </div>
+            ) : (
+              <div
+                ref={liveRef}
+                className="font-sans text-[16px] leading-[1.85] text-text2 italic text-left min-h-[320px] max-h-[380px] overflow-y-auto pr-2"
+              >
+                {transcript || interim ? (
+                  <>
+                    <span className="text-text font-normal">{transcript}</span>
+                    <span className="text-text3"> {interim}</span>
+                  </>
+                ) : (
+                  <div className="h-[280px] flex flex-col items-center justify-center text-center text-text3 italic">
+                    <span className="text-[32px] mb-2 opacity-50">🪜</span>
+                    <span>Speak your thoughts to master Level {ladderLevel}.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
