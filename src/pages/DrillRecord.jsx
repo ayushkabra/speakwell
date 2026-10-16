@@ -333,12 +333,17 @@ export default function DrillRecord() {
           <div className="flex flex-col gap-3 pt-2">
             <div className="flex items-center gap-2 flex-wrap">
               {!isRecording && !transcript ? (
-                <button
-                  onClick={handleStart}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-lg"
-                >
-                  🎙 Start Answer
-                </button>
+                <div className="w-full flex flex-col items-center gap-2">
+                  <button
+                    onClick={handleStart}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-accent text-[#0e0e0d] border-none rounded-xl px-8 py-3.5 font-sans text-[14px] font-medium cursor-pointer transition-all hover:opacity-90 active:scale-95 shadow-lg"
+                  >
+                    🎙 Start Answer
+                  </button>
+                  <p className="text-[11px] text-text3 text-center leading-[1.4]">
+                    Your browser will ask for mic access — tap <strong className="text-text2">Allow</strong> so we can transcribe your answer.
+                  </p>
+                </div>
               ) : (
                 <>
                   <button

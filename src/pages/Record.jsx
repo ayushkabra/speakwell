@@ -341,6 +341,11 @@ export default function Record() {
           </div>
 
           <div className="flex flex-col items-center gap-3 w-full">
+            {!isRecording && (
+              <p className="text-[11px] text-text3 text-center leading-[1.4] max-w-[260px]">
+                Your browser will ask for mic access — tap <strong className="text-text2">Allow</strong> so we can transcribe what you say.
+              </p>
+            )}
             {!isRecording ? (
               <button
                 onClick={handleStart}

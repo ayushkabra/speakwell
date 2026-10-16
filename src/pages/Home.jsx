@@ -133,6 +133,31 @@ export default function Home() {
         </div>
       )}
 
+      {/* RETURNING USER PROGRESS CELEBRATION */}
+      {sessions.length >= 2 && stats.gained > 0 && (
+        <div className="mb-8 p-4 sm:p-4.5 bg-[#161c1a]/95 border border-[#4ade80]/30 rounded-[20px] shadow-[0_12px_32px_rgba(0,0,0,0.4)] flex items-center justify-between gap-4 text-left relative backdrop-blur-md animate-fade-up">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-[#4ade80]/15 text-[#4ade80] flex items-center justify-center text-[20px] shrink-0 border border-[#4ade80]/25">
+              📈
+            </div>
+            <div>
+              <div className="text-[13px] font-medium text-[#f4e8d6]">
+                You're speaking with greater clarity!
+              </div>
+              <div className="text-[12px] text-[#f4e8d6]/65 leading-[1.4]">
+                Your speech score is up <strong className="text-[#4ade80]">+{stats.gained} points</strong> since your first session across {stats.count} practices.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/context')}
+            className="px-4 py-1.5 rounded-full bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/40 text-[12px] font-semibold cursor-pointer hover:bg-[#4ade80]/30 transition-all whitespace-nowrap shadow-sm"
+          >
+            Practice Next →
+          </button>
+        </div>
+      )}
+
       {/* BRAND & CENTERED HERO STAGE */}
       <div className="mb-12">
         <div className="text-[11px] tracking-[0.22em] uppercase text-[#c47a4a] mb-3 font-semibold">
