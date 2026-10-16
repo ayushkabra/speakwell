@@ -60,11 +60,13 @@ export default function Record() {
   });
   const [isMuted, setIsMuted] = useState(() => isSoundMuted());
   const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') === 'true');
+  const [wrapUpRemaining, setWrapUpRemaining] = useState(null);
 
   const timerRef = useRef(null);
   const finalTextRef = useRef('');
   const elapsedRef = useRef(0);
   const liveRef = useRef(null);
+  const handleStopRef = useRef();
 
   const activeTopicDisplay = customContext || selectedContext || 'Free Talk Session';
 
@@ -94,8 +96,6 @@ export default function Record() {
     });
   }, []);
 
-  const handleStopRef = useRef();
-
   const handleToggleFocusMode = () => {
     const next = !focusMode;
     setFocusMode(next);
@@ -120,9 +120,21 @@ export default function Record() {
             if (remaining === 10 || (remaining <= 3 && remaining > 0)) {
               playCountdownPing(remaining <= 3 ? 880 : 660);
             }
-            if (next >= timerSecs) {
+            if (next === timerSecs) {
               playCompletionChime();
-              handleStopRef.current?.();
+              setWrapUpRemaining(5);
+            } else if (next > timerSecs) {
+              const graceRemaining = (timerSecs + 5) - next;
+              if (graceRemaining > 0) {
+                setWrapUpRemaining(graceRemaining);
+                if (graceRemaining <= 3) {
+                  playCountdownPing(880);
+                }
+              } else {
+                setWrapUpRemaining(0);
+                clearInterval(timerRef.current);
+                handleStopRef.current?.();
+              }
             }
           }
 
@@ -147,6 +159,7 @@ export default function Record() {
     setFinalText('');
     setInterimText('');
     setElapsed(0);
+    setWrapUpRemaining(null);
     finalTextRef.current = '';
     elapsedRef.current = 0;
 
@@ -172,6 +185,7 @@ export default function Record() {
     setFinalText('');
     setInterimText('');
     setElapsed(0);
+    setWrapUpRemaining(null);
     finalTextRef.current = '';
     elapsedRef.current = 0;
   };
@@ -179,6 +193,7 @@ export default function Record() {
   const handleStop = useCallback(async () => {
     setIsRecording(false);
     setIsPaused(false);
+    setWrapUpRemaining(null);
     clearInterval(timerRef.current);
 
     const whisperResult = await stopListening();
@@ -188,6 +203,8 @@ export default function Record() {
     setProcessing(true);
     setProcessingStep(0);
     navigate('/processing');
+
+    await delay(500);
 
     setProcessingStep(1);
     await delay(500);
@@ -235,6 +252,10 @@ export default function Record() {
     setProcessing(false);
     navigate('/results');
   }, [selectedContext, customContext, navigate, addSession, setProcessing, setProcessingStep]);
+
+  useEffect(() => {
+    handleStopRef.current = handleStop;
+  }, [handleStop]);
 
   const displayTime = () => {
     if (timerSecs > 0) {
@@ -308,6 +329,13 @@ export default function Record() {
             onToggleMute={handleToggleMute}
           />
 
+          {wrapUpRemaining !== null && wrapUpRemaining > 0 && isRecording && !isPaused && (
+            <div className="w-full my-2.5 p-3 bg-red-500/15 border border-red-500/40 rounded-xl text-red-300 text-[13px] font-medium animate-pulse flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
+              <span>⏱ Target time reached! Wrapping up in <strong>{wrapUpRemaining}s</strong>...</span>
+            </div>
+          )}
+
           <div className="mb-5 w-full flex flex-col items-center">
             <WaveForm isActive={isRecording && !isPaused} />
           </div>
@@ -364,7 +392,9 @@ export default function Record() {
 
             <div className="text-[12px] text-text3">
               {isRecording
-                ? isPaused
+                ? wrapUpRemaining !== null && wrapUpRemaining > 0
+                  ? `Finishing up thought... ${wrapUpRemaining}s remaining`
+                  : isPaused
                   ? 'Recording paused — click Resume or Finish'
                   : 'Recording in progress... speak freely'
                 : 'Tap the mic to start your speech session'}
