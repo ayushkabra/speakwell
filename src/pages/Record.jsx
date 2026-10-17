@@ -58,6 +58,7 @@ export default function Record() {
     const idx = TIMER_PRESETS.findIndex((p) => p.secs === initialTimer);
     return idx !== -1 ? idx : 4;
   });
+  const [isMuted, setIsMuted] = useState(() => isSoundMuted());
   // Default to Focus Mode ON (calm screen) unless explicitly turned off
   const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') !== 'false');
   const [wrapUpRemaining, setWrapUpRemaining] = useState(null);
