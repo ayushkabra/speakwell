@@ -46,6 +46,8 @@ export default function Home() {
 
   const user = useSessionStore((s) => s.user);
   const stats = getStats();
+  const isNewcomer = !user && sessions.length === 0;
+  const [showAllModes, setShowAllModes] = useState(!isNewcomer);
 
   const [showWelcomeNudge, setShowWelcomeNudge] = useState(() => {
     return !localStorage.getItem('speakwell_welcome_dismissed');
@@ -214,15 +216,40 @@ export default function Home() {
       </div>
 
       {/* CORE PRACTICE MODES (Grouped Sleek Suites) */}
-      <div className="mb-14 text-left">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-[#c47a4a] mb-1.5 font-semibold text-center">
-          More ways to practice
+      {!showAllModes && isNewcomer ? (
+        <div className="mb-14 text-center">
+          <button
+            onClick={() => setShowAllModes(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#161c1a]/80 border border-[#f4e8d61f] text-[12px] text-[#f4e8d6]/65 hover:text-[#f4e8d6] hover:border-[#c47a4a80] hover:bg-[#1e2623] transition-all cursor-pointer font-sans shadow-sm group"
+          >
+            <span>Prefer structured interview drills, teleprompter, or slide practice?</span>
+            <span className="text-[#c47a4a] font-medium group-hover:translate-x-0.5 transition-transform">
+              Explore more ways to practice ↓
+            </span>
+          </button>
         </div>
-        <p className="text-[12px] text-[#f4e8d6]/50 mb-6 text-center font-sans">
-          Prefer structure? Pick a focused mode once you've warmed up.
-        </p>
+      ) : (
+        <div className="mb-14 text-left animate-fade-up">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-[10px] tracking-[0.2em] uppercase text-[#c47a4a] mb-1 font-semibold">
+                More ways to practice
+              </div>
+              <p className="text-[12px] text-[#f4e8d6]/50 font-sans">
+                Prefer structure? Pick a focused mode once you've warmed up.
+              </p>
+            </div>
+            {isNewcomer && (
+              <button
+                onClick={() => setShowAllModes(false)}
+                className="text-[11px] text-[#f4e8d6]/40 hover:text-[#f4e8d6] bg-transparent border-none cursor-pointer py-1 px-2"
+              >
+                Hide ↑
+              </button>
+            )}
+          </div>
 
-        <div className="grid grid-cols-3 gap-4 max-[860px]:grid-cols-2 max-[560px]:grid-cols-1">
+          <div className="grid grid-cols-3 gap-4 max-[860px]:grid-cols-2 max-[560px]:grid-cols-1">
           {/* Card 1: Free Talk */}
           <div
             onClick={() => navigate('/context')}
@@ -368,6 +395,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+      )}
 
       {/* STATS OVERVIEW BAR */}
       {stats.count > 0 && (

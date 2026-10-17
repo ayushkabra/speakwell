@@ -6,7 +6,10 @@ import { loginWithGoogle, logoutUser, onAuthStateChanged, auth, setUserAnalytics
 export default function Topbar() {
   const location = useLocation();
   const user = useSessionStore((s) => s.user);
+  const sessions = useSessionStore((s) => s.sessions);
   const setUser = useSessionStore((s) => s.setUser);
+
+  const showFullNav = Boolean(user || (sessions && sessions.length > 0));
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -35,7 +38,11 @@ export default function Topbar() {
 
   return (
     <div className="fixed top-4 left-0 right-0 z-50 flex justify-center px-3 pointer-events-none">
-      <nav className="pointer-events-auto bg-[#161c1a]/90 backdrop-blur-md border border-[#f4e8d61f] rounded-full px-4 py-2 flex items-center justify-between gap-2 shadow-[0_12px_32px_rgba(0,0,0,0.5)] max-w-[1040px] w-full">
+      <nav
+        className={`pointer-events-auto bg-[#161c1a]/90 backdrop-blur-md border border-[#f4e8d61f] rounded-full px-4 py-2 flex items-center justify-between gap-2 shadow-[0_12px_32px_rgba(0,0,0,0.5)] w-full transition-all duration-300 ${
+          showFullNav ? 'max-w-[1040px]' : 'max-w-[820px]'
+        }`}
+      >
         {/* Left: Brand Logo */}
         <NavLink
           to="/"
@@ -44,8 +51,9 @@ export default function Topbar() {
           speakwell<span className="w-1.5 h-1.5 rounded-full bg-[#c47a4a] inline-block" />
         </NavLink>
 
-        {/* Center: Scrollable Links */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-[760px]">
+        {/* Center: Scrollable Links (Shown for returning or signed-in users) */}
+        {showFullNav && (
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-[760px] animate-fade-in">
           <NavLink
             to="/"
             end
@@ -151,8 +159,9 @@ export default function Topbar() {
             Compare ↔
           </NavLink>
         </div>
+      )}
 
-        {/* Right: Firebase Auth Button (Always Visible) */}
+      {/* Right: Firebase Auth Button (Always Visible) */}
         <div className="shrink-0 pl-1 flex items-center">
           {user ? (
             <button
