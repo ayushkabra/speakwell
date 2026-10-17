@@ -168,14 +168,17 @@ export default function Home() {
           <em className="italic text-[#c47a4a]">Sound sharp.</em>
         </h1>
         <p className="text-[15px] sm:text-[16px] text-[#f4e8d6]/70 leading-[1.6] max-w-[540px] mx-auto font-sans">
-          Spin a thoughtful topic and speak off-the-cuff, or rehearse structured debate scripts and slide decks.
+          Talk for 60 seconds on any topic and get instant, private feedback on your pace, clarity, and filler words.
+        </p>
+        <p className="text-[12px] text-[#f4e8d6]/45 mt-3 font-sans tracking-wide">
+          Free · No sign-up needed to try · Nobody else hears your recording
         </p>
       </div>
 
       {/* INTERACTIVE TOPIC SPINNER REEL (unprompted.cool style) */}
       <div className="mb-14 p-8 sm:p-10 bg-[#161c1a]/90 border border-[#f4e8d61f] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden transition-all hover:border-[#c47a4a80]">
         <div className="text-[10px] tracking-[0.2em] uppercase text-[#c47a4a] font-semibold mb-4">
-          🎲 Prompt Reel · Spin & Practice
+          ⚡ Start Here · The fastest way in
         </div>
 
         <div className="min-h-[110px] flex items-center justify-center my-2 px-2">
@@ -199,18 +202,25 @@ export default function Home() {
 
           <button
             onClick={handleStartSpinTopic}
-            className="px-7 py-3 rounded-full bg-[#c47a4a] text-[#1a1612] text-[13px] font-semibold cursor-pointer transition-all hover:bg-[#e0925c] active:scale-95 shadow-[0_10px_28px_rgba(196,122,74,0.35)] flex items-center gap-2"
+            className="px-8 py-4 rounded-full bg-[#c47a4a] text-[#1a1612] text-[15px] font-semibold cursor-pointer transition-all hover:bg-[#e0925c] active:scale-95 shadow-[0_10px_28px_rgba(196,122,74,0.35)] flex items-center gap-2"
           >
             <span>🎙️</span> Speak This Topic (60s) →
           </button>
+        </div>
+
+        <div className="text-[11px] text-[#f4e8d6]/50 mt-5 font-sans leading-[1.5]">
+          No setup, no account — just tap <strong className="text-[#f4e8d6]/75">Speak This Topic</strong> and talk. Your first session takes 60 seconds.
         </div>
       </div>
 
       {/* CORE PRACTICE MODES (Grouped Sleek Suites) */}
       <div className="mb-14 text-left">
-        <div className="text-[10px] tracking-[0.2em] uppercase text-[#c47a4a] mb-4 font-semibold text-center">
-          Practice Modes & Rehearsal Suites
+        <div className="text-[10px] tracking-[0.2em] uppercase text-[#c47a4a] mb-1.5 font-semibold text-center">
+          More ways to practice
         </div>
+        <p className="text-[12px] text-[#f4e8d6]/50 mb-6 text-center font-sans">
+          Prefer structure? Pick a focused mode once you've warmed up.
+        </p>
 
         <div className="grid grid-cols-3 gap-4 max-[860px]:grid-cols-2 max-[560px]:grid-cols-1">
           {/* Card 1: Free Talk */}
@@ -229,7 +239,7 @@ export default function Home() {
                 Free Talk Mode
               </div>
               <div className="text-[12px] text-[#f4e8d6]/60 leading-[1.5]">
-                Speak freely on any custom prompt without limits.
+                The simplest mode — speak freely on any topic you choose.
               </div>
             </div>
             <div className="mt-5 text-[10px] text-[#c47a4a] font-mono uppercase tracking-wider">
@@ -360,26 +370,28 @@ export default function Home() {
       </div>
 
       {/* STATS OVERVIEW BAR */}
-      <div className="flex gap-0 py-6 border-t border-b border-[#f4e8d61f] mb-12 bg-[#161c1a]/60 rounded-2xl px-6 max-[680px]:px-4">
-        <div className="flex-1 pr-6 max-[680px]:pr-2">
-          <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
-            {stats.count}
+      {stats.count > 0 && (
+        <div className="flex gap-0 py-6 border-t border-b border-[#f4e8d61f] mb-12 bg-[#161c1a]/60 rounded-2xl px-6 max-[680px]:px-4">
+          <div className="flex-1 pr-6 max-[680px]:pr-2">
+            <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
+              {stats.count}
+            </div>
+            <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Total Sessions</div>
           </div>
-          <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Total Sessions</div>
-        </div>
-        <div className="flex-1 pr-6 border-l border-[#f4e8d61f] pl-6 max-[680px]:pl-2 max-[680px]:pr-2">
-          <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
-            {stats.best || '—'}
+          <div className="flex-1 pr-6 border-l border-[#f4e8d61f] pl-6 max-[680px]:pl-2 max-[680px]:pr-2">
+            <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
+              {stats.best || '—'}
+            </div>
+            <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Best Score</div>
           </div>
-          <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Best Score</div>
-        </div>
-        <div className="flex-1 border-l border-[#f4e8d61f] pl-6 max-[680px]:pl-2">
-          <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
-            {stats.gained > 0 ? `↑${stats.gained}` : stats.gained === 0 ? '—' : `↓${Math.abs(stats.gained)}`}
+          <div className="flex-1 border-l border-[#f4e8d61f] pl-6 max-[680px]:pl-2">
+            <div className="font-serif text-[38px] italic text-[#c47a4a] leading-none mb-1 max-[680px]:text-[28px]">
+              {stats.gained > 0 ? `↑${stats.gained}` : stats.gained === 0 ? '—' : `↓${Math.abs(stats.gained)}`}
+            </div>
+            <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Points Gained</div>
           </div>
-          <div className="text-[10px] text-[#f4e8d6]/50 tracking-[0.1em] uppercase">Points Gained</div>
         </div>
-      </div>
+      )}
 
       {/* RECENT SESSIONS */}
       {sessions.length > 0 && (

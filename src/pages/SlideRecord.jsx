@@ -45,7 +45,7 @@ export default function SlideRecord() {
   const [targetSecs, setTargetSecs] = useState(() => (slideTimerSecs !== undefined ? slideTimerSecs : 60));
   const [timerHidden, setTimerHidden] = useState(false);
   const [isMuted, setIsMuted] = useState(() => isSoundMuted());
-  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') === 'true');
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem('speakwell_focus_mode') !== 'false');
 
   const timerRef = useRef(null);
   const liveRef = useRef(null);
